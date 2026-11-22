@@ -1889,7 +1889,8 @@
                 </div>
                 <div class="preview-actions">
                     <button type="button" class="btn btn-primary" onclick="exportReportPDF(true, this)"><i class="fas fa-print"></i> طباعة الآن</button>
-                    <button type="button" class="btn btn-danger" onclick="saveArchivePreviewAsPDF()"><i class="fas fa-file-pdf"></i> تصدير PDF</button>
+                    <button type="button" class="btn btn-danger" onclick="saveArchivePreviewAsPDF(this)"><i class="fas fa-file-pdf"></i> حفظ كـ PDF</button>
+                    <button type="button" class="btn btn-info" onclick="savePreviewAsWord()"><i class="fas fa-file-word"></i> تصدير Word</button>
                     <button type="button" class="btn btn-outline" style="background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.2);" onclick="closeArchivePrintPreviewModal()"><i class="fas fa-times"></i> إغلاق المعاينة</button>
                 </div>
             </div>
@@ -5776,10 +5777,24 @@
 
         // الدالة الموحدة والمضمونة 100% لتصدير PDF والطباعة على الآيفون والكمبيوتر
         async function exportReportPDF(isPrintMode, btnEl) {
-            var isMobile = /iPad|iPhone|iPod|Android/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            // العثور على الكشف المعروض حالياً (سواء معاينة عادية أو أرشيف)
+            var sourceSheet = document.getElementById('preview-sheet');
+            var isArchive = false;
+            var archiveModal = document.getElementById('archive-print-preview-modal');
+            if (archiveModal && archiveModal.classList.contains('active')) {
+                sourceSheet = document.getElementById('archive-preview-sheet') || document.getElementById('archive-print-sheet');
+                isArchive = true;
+            }
+            if (!sourceSheet || !sourceSheet.innerHTML.trim()) {
+                sourceSheet = document.getElementById('print-preview-sheet') || document.querySelector('.report-sheet') || document.getElementById('report-sheet-container');
+            }
 
-            // في الكمبيوتر: إذا كان الضغط على "طباعة الآن" افتح أمر الطباعة مباشرة
-            if (!isMobile && isPrintMode) {
+            // إذا كان الضغط على "طباعة الآن" (يعمل فوراً على الكمبيوتر والآيفون والأندرويد دون أي نوافذ منبثقة محظورة)
+            if (isPrintMode) {
+                var printArea = document.getElementById('print-area');
+                if (printArea && sourceSheet) {
+                    printArea.innerHTML = sourceSheet.innerHTML;
+                }
                 window.print();
                 return;
             }
@@ -5795,19 +5810,6 @@
 
             try {
                 await ensureHtml2PdfLoaded();
-
-                // العثور على الكشف المعروض حالياً
-                var sourceSheet = document.getElementById('print-preview-sheet');
-                var isArchive = false;
-                var archiveModal = document.getElementById('archive-print-preview-modal');
-                if (archiveModal && archiveModal.classList.contains('active')) {
-                    sourceSheet = document.getElementById('archive-print-sheet') || document.getElementById('archive-preview-sheet');
-                    isArchive = true;
-                }
-
-                if (!sourceSheet) {
-                    sourceSheet = document.querySelector('.report-sheet') || document.getElementById('report-sheet-container') || document.body;
-                }
 
                 var defaultTitle = 'كشف_الدرجات';
                 if (isArchive && currentArchivePreviewItem && currentArchivePreviewItem.title) {
@@ -5843,7 +5845,7 @@
                 cleanContainer.style.zIndex = '-999';
 
                 var clone = sourceSheet.cloneNode(true);
-                var noPrintEls = clone.querySelectorAll('.no-print, .print-preview-topbar, .preview-actions');
+                var noPrintEls = clone.querySelectorAll('.no-print, .print-preview-topbar, .preview-actions, button');
                 for (var n = 0; n < noPrintEls.length; n++) noPrintEls[n].remove();
 
                 cleanContainer.appendChild(clone);
@@ -5866,34 +5868,27 @@
                     btnEl.innerHTML = originalBtnHtml;
                 }
 
-                // في الآيفون والجوال: فتح ملف الـ Blob عبر navigator.share أو window.open
-                if (isMobile) {
+                // محاولة المشاركة الرسمية عبر قائمة النظام على أجهزة الجوال والآيفون
+                var isMobile = /iPad|iPhone|iPod|Android/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+                if (isMobile && navigator.share) {
                     var pdfFile = new File([pdfBlob], filename, { type: 'application/pdf' });
-                    if (navigator.share) {
-                        var canShare = false;
-                        try { canShare = navigator.canShare && navigator.canShare({ files: [pdfFile] }); } catch(e){}
-                        if (canShare) {
-                            try {
-                                await navigator.share({
-                                    files: [pdfFile],
-                                    title: filename
-                                });
-                                showToast('✅ تم فتح قائمة المشاركة والحفظ بالآيفون', 'success');
-                                return;
-                            } catch(shErr) {
-                                if (shErr.name === 'AbortError') return;
-                            }
+                    var canShare = false;
+                    try { canShare = navigator.canShare && navigator.canShare({ files: [pdfFile] }); } catch(e){}
+                    if (canShare) {
+                        try {
+                            await navigator.share({
+                                files: [pdfFile],
+                                title: filename
+                            });
+                            showToast('✅ تم فتح قائمة المشاركة والحفظ بالآيفون', 'success');
+                            return;
+                        } catch(shErr) {
+                            if (shErr.name === 'AbortError') return;
                         }
                     }
-
-                    var blobUrl = URL.createObjectURL(pdfBlob);
-                    var win = window.open(blobUrl, '_blank');
-                    if (!win) window.location.href = blobUrl;
-                    showToast('تم فتح ملف PDF (اضغط مشاركة ثم حفظ في الملفات)', 'info');
-                    return;
                 }
 
-                // في الكمبيوتر: تنزيل الملف مباشرة
+                // تنزيل ملف PDF مباشرة عبر رابط a.download بدون أي نافذة منبثقة محظورة
                 var downloadUrl = URL.createObjectURL(pdfBlob);
                 var a = document.createElement('a');
                 a.href = downloadUrl;
@@ -5903,7 +5898,7 @@
                 setTimeout(function() {
                     if (a.parentNode) a.parentNode.removeChild(a);
                     URL.revokeObjectURL(downloadUrl);
-                }, 300);
+                }, 1000);
                 showToast('✅ تم تنزيل ملف PDF بنجاح', 'success');
 
             } catch (err) {
@@ -5913,6 +5908,10 @@
                     btnEl.innerHTML = originalBtnHtml;
                 }
                 showToast('حدث خطأ أثناء معالجة PDF، جاري التحويل للطباعة المباشرة', 'warning');
+                var printArea = document.getElementById('print-area');
+                if (printArea && sourceSheet) {
+                    printArea.innerHTML = sourceSheet.innerHTML;
+                }
                 window.print();
             }
         }
@@ -5938,49 +5937,46 @@
             openPrintPreview(mode);
         }
 
-        async function savePreviewAsWord() {
-            if (!activeEntrySubjectId && appData.subjects && appData.subjects.length > 0) {
-                activeEntrySubjectId = appData.subjects[0].id;
+        // تصدير Word ليعمل على الكمبيوتر والآيفون فوراً عبر Data URI دون أي حظر أو نوافذ منبثقة
+        function savePreviewAsWord() {
+            var sourceSheet = document.getElementById('preview-sheet');
+            var isArchive = false;
+            var archiveModal = document.getElementById('archive-print-preview-modal');
+            if (archiveModal && archiveModal.classList.contains('active')) {
+                sourceSheet = document.getElementById('archive-preview-sheet') || document.getElementById('archive-print-sheet');
+                isArchive = true;
             }
-            var sub = appData.subjects.find(function(s) { return s.id === activeEntrySubjectId; });
-            if (!sub) { showToast('يرجى اختيار مادة أولاً!', 'warning'); return; }
+            if (!sourceSheet || !sourceSheet.innerHTML.trim()) {
+                sourceSheet = document.getElementById('print-preview-sheet') || document.querySelector('.report-sheet') || document.getElementById('report-sheet-container');
+            }
 
-            var fullWordHtml = buildWordDocumentHTML(currentPreviewMode);
-            var defaultName = getReportDefaultFileName('doc', currentPreviewMode);
-
-            if (typeof ipcRenderer !== 'undefined' && ipcRenderer && typeof ipcRenderer.invoke === 'function') {
-                try {
-                    var res = await ipcRenderer.invoke('save-word', { defaultName: defaultName, htmlContent: fullWordHtml });
-                    if (res && res.success) {
-                        showToast('تم تصدير ملف Word بنجاح في: ' + res.filePath, 'success');
-                    } else if (res && res.error) {
-                        showToast('خطأ أثناء تصدير Word: ' + res.error, 'danger');
-                    }
-                } catch (err) {
-                    showToast('خطأ: ' + err.message, 'danger');
-                }
+            var reportHtml = '';
+            if (sourceSheet && sourceSheet.innerHTML.trim()) {
+                var clone = sourceSheet.cloneNode(true);
+                var noPrintEls = clone.querySelectorAll('.no-print, .print-preview-topbar, .preview-actions, button');
+                for (var n = 0; n < noPrintEls.length; n++) noPrintEls[n].remove();
+                reportHtml = clone.innerHTML;
             } else {
-                var blob = new Blob(['\ufeff', fullWordHtml], { type: 'application/msword;charset=utf-8' });
-                if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], defaultName, { type: 'application/msword' })] })) {
-                    try {
-                        var file = new File([blob], defaultName, { type: 'application/msword' });
-                        await navigator.share({ files: [file], title: defaultName });
-                        showToast('تمت مشاركة الملف بنجاح', 'success');
-                        return;
-                    } catch (shErr) {
-                        if (shErr.name === 'AbortError') return;
-                    }
-                }
-                var url = URL.createObjectURL(blob);
-                var link = document.createElement('a');
-                link.href = url;
-                link.download = defaultName;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                setTimeout(function() { URL.revokeObjectURL(url); }, 2000);
-                showToast('تم تنزيل مستند Word بنجاح', 'success');
+                reportHtml = buildReportHTML(currentPreviewMode || 'detailed');
             }
+
+            var defaultName = 'كشف_الدرجات.doc';
+            if (isArchive && currentArchivePreviewItem && currentArchivePreviewItem.title) {
+                defaultName = currentArchivePreviewItem.title.replace(/[\/:*?"<>|]/g, '_') + '.doc';
+            } else if (typeof getReportDefaultFileName === 'function') {
+                defaultName = getReportDefaultFileName('doc', currentPreviewMode || 'detailed');
+            }
+            if (!defaultName.endsWith('.doc')) defaultName += '.doc';
+
+            const htmlContent = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40' dir='rtl'><head><meta charset='utf-8'><style>body{font-family:Arial,sans-serif;direction:rtl;} table{width:100%;border-collapse:collapse;} th,td{border:1px solid #000;padding:6px;text-align:center;}</style></head><body>${reportHtml}</body></html>`;
+            const url = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(htmlContent);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = defaultName || 'كشف_الدرجات.doc';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast('✅ تم تنزيل مستند Word بنجاح', 'success');
         }
 
         function saveActiveReportAsPDF() {
@@ -6476,15 +6472,12 @@
                 '</body></html>';
         }
 
-        function printArchiveCurrentPreview() {
-            if (!currentArchivePreviewItem) return;
-            openPrintAndPdfWindow(buildArchivedFullDocumentHTML(currentArchivePreviewItem, currentArchiveOrientation), 300);
+        function printArchiveCurrentPreview(btn) {
+            exportReportPDF(true, btn);
         }
 
-        function saveArchivePreviewAsPDF() {
-            if (!currentArchivePreviewItem) return;
-            showToast('جاري فتح شاشة حفظ PDF للأرشيف...', 'info');
-            openPrintAndPdfWindow(buildArchivedFullDocumentHTML(currentArchivePreviewItem, currentArchiveOrientation), 300);
+        function saveArchivePreviewAsPDF(btn) {
+            exportReportPDF(false, btn);
         }
 
         function closeArchivePrintPreviewModal() {
