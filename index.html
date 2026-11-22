@@ -1047,7 +1047,7 @@
     <aside class="sidebar">
         <div class="sidebar-header">
             <h2><i class="fas fa-graduation-cap"></i> سجل الدرجات الذكي</h2>
-            <p id="sidebar-subtitle">نظام متابعة ورصد الدرجات (v9.0)</p>
+            <p id="sidebar-subtitle">نظام متابعة ورصد الدرجات (v9.1)</p>
         </div>
         <ul class="nav-menu">
             <li class="nav-item active" onclick="switchTab('dashboard', this)">
@@ -1100,7 +1100,7 @@
             </div>
             <div style="display: flex; align-items: center; gap: 0.75rem;">
                 <div id="licenseHeaderBadgeContainer" style="display: flex; align-items: center;"></div>
-                <span id="app-version-badge" class="badge" style="background: #e2e8f0; color: #1e293b; font-size: 0.8rem; font-weight: 800; border: 1.5px solid #cbd5e1; padding: 4px 10px; border-radius: 9999px;">v9.0</span>
+                <span id="app-version-badge" class="badge" style="background: #e2e8f0; color: #1e293b; font-size: 0.8rem; font-weight: 800; border: 1.5px solid #cbd5e1; padding: 4px 10px; border-radius: 9999px;">v9.1</span>
                 <span id="whatsapp-status-badge" class="badge badge-success"><i class="fab fa-whatsapp"></i> واتساب مفعل</span>
                 <div style="text-align: left;">
                     <div id="top-teacher-name" style="font-weight: 700; font-size: 0.9rem;">المعلم: ---</div>
@@ -5890,15 +5890,14 @@
             });
         }
 
-        // توليد ملف PDF ومشاركته على أجهزة iOS/iPadOS باستخدام jsPDF + AutoTable ورسم الجدول برمجياً (v9.0)
+        // توليد ملف PDF ومشاركته على أجهزة iOS/iPadOS باستخدام jsPDF + AutoTable ورسم الجدول برمجياً (v9.1)
         async function generateAndSharePdf() {
             const visibleTables = Array.from(document.querySelectorAll('table')).filter(t => t.offsetParent !== null);
             const table = visibleTables[0] || document.querySelector('table');
             if (!table) { alert('الرجاء عرض الكشف أولاً'); return; }
 
             const { jsPDF } = window.jspdf;
-            const isLandscape = (typeof currentPreviewOrientation !== 'undefined' && currentPreviewOrientation === 'landscape');
-            const doc = new jsPDF({ orientation: isLandscape ? 'landscape' : 'portrait', unit: 'mm', format: 'a4' });
+            const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
             let fontBase64 = window._cachedAmiriFont;
             if (!fontBase64) {
@@ -5919,27 +5918,104 @@
                 doc.setFont('Amiri');
             }
 
-            const titleEl = document.querySelector('#printArea h2, #printArea h3, .report-title, h2, h3');
-            const titleText = titleEl ? titleEl.innerText.trim() : 'كشف الدرجات';
-            doc.setFontSize(16);
-            if (fontBase64) doc.setFont('Amiri');
-            doc.text(titleText, isLandscape ? 148 : 105, 15, { align: 'center' });
+            // 1. استخراج عنوان الكشف الفعلي وتجاهل العناصر المخفية أو اتفاقية الاستخدام
+            let titleText = '';
+            const container = table.closest('#preview-sheet, #archive-preview-sheet, .preview-sheet-wrapper') || table.parentElement;
+            if (container) {
+                const candidateHeadings = Array.from(container.querySelectorAll('h1, h2, h3, h4, .report-title, strong, p'))
+                    .filter(el => el.offsetParent !== null && !table.contains(el) && !el.innerText.includes('اتفاقية الاستخدام') && el.innerText.trim().length > 0);
+                const reportHeading = candidateHeadings.find(el => /كشف|درجات|مادة|الصف/.test(el.innerText));
+                if (reportHeading) {
+                    titleText = reportHeading.innerText.trim();
+                } else if (candidateHeadings.length > 0) {
+                    titleText = candidateHeadings[0].innerText.trim();
+                }
+            }
 
-            const headers = Array.from(table.querySelectorAll('thead tr th')).map(th => th.innerText.trim()).reverse();
-            const rows = Array.from(table.querySelectorAll('tbody tr')).map(tr =>
-                Array.from(tr.querySelectorAll('td')).map(td => td.innerText.trim()).reverse()
-            );
+            if (!titleText) {
+                let prev = table.previousElementSibling;
+                while (prev) {
+                    if (prev.offsetParent !== null && !prev.innerText.includes('اتفاقية الاستخدام')) {
+                        const h = prev.querySelector('h1, h2, h3, h4') || prev;
+                        const txt = h.innerText.trim();
+                        if (txt && !txt.includes('اتفاقية الاستخدام')) {
+                            titleText = txt.split('\n').filter(Boolean)[0] || txt;
+                            break;
+                        }
+                    }
+                    prev = prev.previousElementSibling;
+                }
+            }
+
+            if (!titleText) {
+                const printArea = document.getElementById('printArea');
+                if (printArea) {
+                    const h = printArea.querySelector('h1, h2, h3, h4, .report-title');
+                    if (h && !h.innerText.includes('اتفاقية الاستخدام')) {
+                        titleText = h.innerText.trim();
+                    }
+                }
+            }
+
+            if (!titleText || titleText.includes('اتفاقية الاستخدام')) {
+                if (typeof getReportDefaultFileName === 'function') {
+                    try { titleText = getReportDefaultFileName('', currentPreviewMode || 'detailed'); } catch(e) {}
+                }
+            }
+
+            if (!titleText || titleText.includes('اتفاقية الاستخدام')) {
+                titleText = 'كشف الدرجات';
+            }
+
+            doc.setFontSize(15);
+            if (fontBase64) doc.setFont('Amiri');
+            doc.text(titleText, 148.5, 14, { align: 'center' });
+
+            // 2. إصلاح تطابق الرؤوس مع الأعمدة ومنع الانزياح
+            const headerRow = table.querySelector('thead tr:last-child') || table.querySelector('tr');
+            if (!headerRow) { alert('تعذر قراءة عناوين الجدول'); return; }
+
+            let headers = Array.from(headerRow.children).map(c => c.innerText.trim()).reverse();
+            let rows = Array.from(table.querySelectorAll('tbody tr'))
+                .filter(tr => tr.offsetParent !== null)
+                .map(tr => Array.from(tr.children).map(td => td.innerText.trim()).reverse());
+
+            // حذف أي أعمدة فارغة من الطرفين إذا كانت فارغة في الرأس وفي كل الصفوف
+            while (headers.length > 0 && !headers[0] && rows.every(r => !r[0])) {
+                headers.shift();
+                rows.forEach(r => r.shift());
+            }
+            while (headers.length > 0 && !headers[headers.length - 1] && rows.every(r => !r[r.length - 1])) {
+                headers.pop();
+                rows.forEach(r => r.pop());
+            }
+
+            // مطابقة عدد خلايا الصفوف مع عدد الرؤوس بدقة تامة
+            const colCount = headers.length;
+            const normalizedRows = rows.map(r => {
+                const clean = r.slice(0, colCount);
+                while (clean.length < colCount) clean.push('');
+                return clean;
+            });
+
+            // 3. تحديد عرض عمود اسم الطالب وتنسيقات الجدول بالعرض
+            const nameColIndex = headers.findIndex(h => h.includes('اسم'));
+            const columnStyles = {};
+            if (nameColIndex !== -1) {
+                columnStyles[nameColIndex] = { cellWidth: 55 };
+            }
 
             doc.autoTable({
                 head: headers.length ? [headers] : undefined,
-                body: rows,
-                startY: 22,
+                body: normalizedRows,
+                startY: 20,
                 styles: {
                     font: fontBase64 ? 'Amiri' : undefined,
                     fontStyle: 'normal',
                     halign: 'center',
                     valign: 'middle',
-                    fontSize: 10,
+                    fontSize: 9,
+                    cellPadding: 1.5,
                     lineWidth: 0.2,
                     lineColor: [0, 0, 0],
                     textColor: [0, 0, 0]
@@ -5949,6 +6025,7 @@
                     textColor: [0, 0, 0],
                     fontStyle: 'normal'
                 },
+                columnStyles: columnStyles,
                 theme: 'grid'
             });
 
