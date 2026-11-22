@@ -16,6 +16,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
         <!-- مكتبات PWA الخارجية للأوفلاين (إكسل + PDF للملفات + توليد باركود QR) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="license-guard.js"></script>
@@ -1045,7 +1047,7 @@
     <aside class="sidebar">
         <div class="sidebar-header">
             <h2><i class="fas fa-graduation-cap"></i> سجل الدرجات الذكي</h2>
-            <p id="sidebar-subtitle">نظام متابعة ورصد الدرجات (v8.2)</p>
+            <p id="sidebar-subtitle">نظام متابعة ورصد الدرجات (v9.0)</p>
         </div>
         <ul class="nav-menu">
             <li class="nav-item active" onclick="switchTab('dashboard', this)">
@@ -1098,7 +1100,7 @@
             </div>
             <div style="display: flex; align-items: center; gap: 0.75rem;">
                 <div id="licenseHeaderBadgeContainer" style="display: flex; align-items: center;"></div>
-                <span id="app-version-badge" class="badge" style="background: #e2e8f0; color: #1e293b; font-size: 0.8rem; font-weight: 800; border: 1.5px solid #cbd5e1; padding: 4px 10px; border-radius: 9999px;">v8.2</span>
+                <span id="app-version-badge" class="badge" style="background: #e2e8f0; color: #1e293b; font-size: 0.8rem; font-weight: 800; border: 1.5px solid #cbd5e1; padding: 4px 10px; border-radius: 9999px;">v9.0</span>
                 <span id="whatsapp-status-badge" class="badge badge-success"><i class="fab fa-whatsapp"></i> واتساب مفعل</span>
                 <div style="text-align: left;">
                     <div id="top-teacher-name" style="font-weight: 700; font-size: 0.9rem;">المعلم: ---</div>
@@ -5888,62 +5890,75 @@
             });
         }
 
-        // توليد ملف PDF ومشاركته على أجهزة iOS/iPadOS مع حاوية مرئية بيضاء مؤقتة تمنع الصفحة البيضاء
+        // توليد ملف PDF ومشاركته على أجهزة iOS/iPadOS باستخدام jsPDF + AutoTable ورسم الجدول برمجياً (v9.0)
         async function generateAndSharePdf() {
-            if (typeof ensureHtml2PdfLoaded === 'function') await ensureHtml2PdfLoaded();
             const visibleTables = Array.from(document.querySelectorAll('table')).filter(t => t.offsetParent !== null);
-            const targetTable = visibleTables[0] || document.querySelector('table');
-            const headerArea = document.getElementById('printArea') || targetTable?.parentElement;
+            const table = visibleTables[0] || document.querySelector('table');
+            if (!table) { alert('الرجاء عرض الكشف أولاً'); return; }
 
-            if (!targetTable && !headerArea) {
-                alert('الرجاء فتح الكشف أولاً قبل الطباعة');
-                return;
+            const { jsPDF } = window.jspdf;
+            const isLandscape = (typeof currentPreviewOrientation !== 'undefined' && currentPreviewOrientation === 'landscape');
+            const doc = new jsPDF({ orientation: isLandscape ? 'landscape' : 'portrait', unit: 'mm', format: 'a4' });
+
+            let fontBase64 = window._cachedAmiriFont;
+            if (!fontBase64) {
+                try {
+                    const fontUrl = 'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/amiri/Amiri-Regular.ttf';
+                    const fontResp = await fetch(fontUrl);
+                    const fontBuf = await fontResp.arrayBuffer();
+                    fontBase64 = btoa(new Uint8Array(fontBuf).reduce((data, byte) => data + String.fromCharCode(byte), ''));
+                    window._cachedAmiriFont = fontBase64;
+                } catch(e) {
+                    console.warn('Font load error:', e);
+                }
             }
 
-            const contentHtml = (headerArea && headerArea.innerText.trim().length > 20)
-                ? headerArea.innerHTML
-                : targetTable.outerHTML;
+            if (fontBase64) {
+                doc.addFileToVFS('Amiri-Regular.ttf', fontBase64);
+                doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
+                doc.setFont('Amiri');
+            }
 
-            const prevScrollY = window.scrollY;
-            window.scrollTo(0, 0);
+            const titleEl = document.querySelector('#printArea h2, #printArea h3, .report-title, h2, h3');
+            const titleText = titleEl ? titleEl.innerText.trim() : 'كشف الدرجات';
+            doc.setFontSize(16);
+            if (fontBase64) doc.setFont('Amiri');
+            doc.text(titleText, isLandscape ? 148 : 105, 15, { align: 'center' });
 
-            const wrapper = document.createElement('div');
-            wrapper.style.cssText = 'position:absolute; top:0; left:0; width:794px; background:#ffffff; color:#000000; padding:20px; z-index:999999; direction:rtl; font-family:Arial,sans-serif; display:block !important; visibility:visible !important; opacity:1 !important;';
-            wrapper.innerHTML = `<style>
-                * { box-sizing: border-box; overflow: visible !important; max-height: none !important; opacity: 1 !important; visibility: visible !important; }
-                table { width: 100% !important; border-collapse: collapse !important; font-size: 12px !important; display: table !important; }
-                thead { display: table-header-group !important; }
-                tbody { display: table-row-group !important; }
-                tr { display: table-row !important; }
-                th, td { display: table-cell !important; border: 1px solid #000 !important; padding: 6px !important; text-align: center !important; color: #000 !important; background: #fff !important; }
-                th { background-color: #e5e7eb !important; font-weight: bold !important; }
-                button, .no-print { display: none !important; }
-            </style>` + contentHtml;
+            const headers = Array.from(table.querySelectorAll('thead tr th')).map(th => th.innerText.trim()).reverse();
+            const rows = Array.from(table.querySelectorAll('tbody tr')).map(tr =>
+                Array.from(tr.querySelectorAll('td')).map(td => td.innerText.trim()).reverse()
+            );
 
-            document.body.appendChild(wrapper);
-            await new Promise(r => setTimeout(r, 400));
+            doc.autoTable({
+                head: headers.length ? [headers] : undefined,
+                body: rows,
+                startY: 22,
+                styles: {
+                    font: fontBase64 ? 'Amiri' : undefined,
+                    fontStyle: 'normal',
+                    halign: 'center',
+                    valign: 'middle',
+                    fontSize: 10,
+                    lineWidth: 0.2,
+                    lineColor: [0, 0, 0],
+                    textColor: [0, 0, 0]
+                },
+                headStyles: {
+                    fillColor: [230, 230, 230],
+                    textColor: [0, 0, 0],
+                    fontStyle: 'normal'
+                },
+                theme: 'grid'
+            });
 
-            try {
-                const opt = {
-                    margin: 8,
-                    filename: 'كشف_الدرجات.pdf',
-                    image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0, windowWidth: 794 },
-                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                };
-                const pdfBlob = await html2pdf().set(opt).from(wrapper).outputPdf('blob');
-                const pdfFile = new File([pdfBlob], 'كشف_الدرجات.pdf', { type: 'application/pdf' });
+            const pdfBlob = doc.output('blob');
+            const pdfFile = new File([pdfBlob], 'كشف_الدرجات.pdf', { type: 'application/pdf' });
 
-                if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
-                    await navigator.share({ files: [pdfFile], title: 'كشف الدرجات' });
-                } else {
-                    window.open(URL.createObjectURL(pdfBlob), '_blank');
-                }
-            } finally {
-                if (wrapper.parentNode) {
-                    document.body.removeChild(wrapper);
-                }
-                window.scrollTo(0, prevScrollY);
+            if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+                await navigator.share({ files: [pdfFile], title: titleText });
+            } else {
+                doc.save('كشف_الدرجات.pdf');
             }
         }
 
