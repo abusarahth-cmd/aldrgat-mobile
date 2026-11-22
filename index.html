@@ -1047,7 +1047,7 @@
     <aside class="sidebar">
         <div class="sidebar-header">
             <h2><i class="fas fa-graduation-cap"></i> سجل الدرجات الذكي</h2>
-            <p id="sidebar-subtitle">نظام متابعة ورصد الدرجات (v9.1)</p>
+            <p id="sidebar-subtitle">نظام متابعة ورصد الدرجات (v9.2)</p>
         </div>
         <ul class="nav-menu">
             <li class="nav-item active" onclick="switchTab('dashboard', this)">
@@ -1100,7 +1100,7 @@
             </div>
             <div style="display: flex; align-items: center; gap: 0.75rem;">
                 <div id="licenseHeaderBadgeContainer" style="display: flex; align-items: center;"></div>
-                <span id="app-version-badge" class="badge" style="background: #e2e8f0; color: #1e293b; font-size: 0.8rem; font-weight: 800; border: 1.5px solid #cbd5e1; padding: 4px 10px; border-radius: 9999px;">v9.1</span>
+                <span id="app-version-badge" class="badge" style="background: #e2e8f0; color: #1e293b; font-size: 0.8rem; font-weight: 800; border: 1.5px solid #cbd5e1; padding: 4px 10px; border-radius: 9999px;">v9.2</span>
                 <span id="whatsapp-status-badge" class="badge badge-success"><i class="fab fa-whatsapp"></i> واتساب مفعل</span>
                 <div style="text-align: left;">
                     <div id="top-teacher-name" style="font-weight: 700; font-size: 0.9rem;">المعلم: ---</div>
@@ -5890,7 +5890,7 @@
             });
         }
 
-        // توليد ملف PDF ومشاركته على أجهزة iOS/iPadOS باستخدام jsPDF + AutoTable ورسم الجدول برمجياً (v9.1)
+        // توليد ملف PDF ومشاركته على أجهزة iOS/iPadOS باستخدام jsPDF + AutoTable ورسم الجدول برمجياً (v9.2)
         async function generateAndSharePdf() {
             const visibleTables = Array.from(document.querySelectorAll('table')).filter(t => t.offsetParent !== null);
             const table = visibleTables[0] || document.querySelector('table');
@@ -5971,43 +5971,50 @@
             if (fontBase64) doc.setFont('Amiri');
             doc.text(titleText, 148.5, 14, { align: 'center' });
 
-            // 2. إصلاح تطابق الرؤوس مع الأعمدة ومنع الانزياح
-            const headerRow = table.querySelector('thead tr:last-child') || table.querySelector('tr');
-            if (!headerRow) { alert('تعذر قراءة عناوين الجدول'); return; }
+            // 2. بناء مصفوفة الرؤوس الحقيقية مع مراعاة rowspan و colspan (v9.2)
+            const theadRows = Array.from(table.querySelectorAll('thead tr'));
+            let finalHeaders = [];
+            if (theadRows.length === 1) {
+                finalHeaders = Array.from(theadRows[0].children).map(th => th.innerText.trim());
+            } else if (theadRows.length >= 2) {
+                const row1 = Array.from(theadRows[0].children);
+                const row2 = Array.from(theadRows[1].children);
+                let r2Index = 0;
+                row1.forEach(th => {
+                    const colspan = parseInt(th.getAttribute('colspan') || '1', 10);
+                    const rowspan = parseInt(th.getAttribute('rowspan') || '1', 10);
+                    if (rowspan > 1 || colspan === 1) {
+                        finalHeaders.push(th.innerText.trim());
+                    } else {
+                        for (let i = 0; i < colspan; i++) {
+                            finalHeaders.push(row2[r2Index] ? row2[r2Index].innerText.trim() : th.innerText.trim());
+                            r2Index++;
+                        }
+                    }
+                });
+            } else {
+                const singleRow = table.querySelector('tr');
+                if (singleRow) {
+                    finalHeaders = Array.from(singleRow.children).map(c => c.innerText.trim());
+                }
+            }
 
-            let headers = Array.from(headerRow.children).map(c => c.innerText.trim()).reverse();
-            let rows = Array.from(table.querySelectorAll('tbody tr'))
+            // عكس الترتيب ليتطابق مع RTL (من اليمين لليسار)
+            const headers = finalHeaders.reverse();
+            const rows = Array.from(table.querySelectorAll('tbody tr'))
                 .filter(tr => tr.offsetParent !== null)
                 .map(tr => Array.from(tr.children).map(td => td.innerText.trim()).reverse());
 
-            // حذف أي أعمدة فارغة من الطرفين إذا كانت فارغة في الرأس وفي كل الصفوف
-            while (headers.length > 0 && !headers[0] && rows.every(r => !r[0])) {
-                headers.shift();
-                rows.forEach(r => r.shift());
-            }
-            while (headers.length > 0 && !headers[headers.length - 1] && rows.every(r => !r[r.length - 1])) {
-                headers.pop();
-                rows.forEach(r => r.pop());
-            }
-
-            // مطابقة عدد خلايا الصفوف مع عدد الرؤوس بدقة تامة
-            const colCount = headers.length;
-            const normalizedRows = rows.map(r => {
-                const clean = r.slice(0, colCount);
-                while (clean.length < colCount) clean.push('');
-                return clean;
-            });
-
-            // 3. تحديد عرض عمود اسم الطالب وتنسيقات الجدول بالعرض
-            const nameColIndex = headers.findIndex(h => h.includes('اسم'));
-            const columnStyles = {};
-            if (nameColIndex !== -1) {
-                columnStyles[nameColIndex] = { cellWidth: 55 };
+            // توسيع عمود اسم الطالب (الذي يحتوي عنوانه على كلمة "اسم")
+            const nameColIdx = headers.findIndex(h => h.includes('اسم'));
+            const colStyles = {};
+            if (nameColIdx !== -1) {
+                colStyles[nameColIdx] = { cellWidth: 55, halign: 'right' };
             }
 
             doc.autoTable({
                 head: headers.length ? [headers] : undefined,
-                body: normalizedRows,
+                body: rows,
                 startY: 20,
                 styles: {
                     font: fontBase64 ? 'Amiri' : undefined,
@@ -6025,7 +6032,7 @@
                     textColor: [0, 0, 0],
                     fontStyle: 'normal'
                 },
-                columnStyles: columnStyles,
+                columnStyles: colStyles,
                 theme: 'grid'
             });
 
