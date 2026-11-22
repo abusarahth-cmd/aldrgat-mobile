@@ -5942,45 +5942,51 @@
             openPrintPreview(mode);
         }
 
-        // تصدير Word ليعمل على الكمبيوتر والآيفون فوراً عبر Data URI دون أي حظر أو نوافذ منبثقة
+        // تصدير Word ليعمل على الكمبيوتر والآيفون مهما كان حجم الجدول عبر Blob
         function savePreviewAsWord() {
-            var sourceSheet = document.getElementById('preview-sheet');
-            var isArchive = false;
-            var archiveModal = document.getElementById('archive-print-preview-modal');
-            if (archiveModal && archiveModal.classList.contains('active')) {
-                sourceSheet = document.getElementById('archive-preview-sheet') || document.getElementById('archive-print-sheet');
-                isArchive = true;
-            }
-            if (!sourceSheet || !sourceSheet.innerHTML.trim()) {
-                sourceSheet = document.getElementById('print-preview-sheet') || document.querySelector('.report-sheet') || document.getElementById('report-sheet-container');
-            }
-
-            var reportHtml = '';
-            if (sourceSheet && sourceSheet.innerHTML.trim()) {
-                var clone = sourceSheet.cloneNode(true);
-                var noPrintEls = clone.querySelectorAll('.no-print, .print-preview-topbar, .preview-actions, button');
-                for (var n = 0; n < noPrintEls.length; n++) noPrintEls[n].remove();
-                reportHtml = clone.innerHTML;
-            } else {
-                reportHtml = buildReportHTML(currentPreviewMode || 'detailed');
+            var reportEl = document.getElementById('preview-sheet') || document.getElementById('archive-preview-sheet') || document.getElementById('printArea') || document.querySelector('.print-content') || (document.querySelector('table') ? document.querySelector('table').parentElement : null);
+            
+            if (!reportEl || !reportEl.innerHTML.trim()) {
+                var sheet = document.getElementById('preview-sheet');
+                if (sheet) sheet.innerHTML = buildReportHTML(currentPreviewMode || 'detailed');
+                reportEl = sheet || document.getElementById('printArea');
             }
 
             var defaultName = 'كشف_الدرجات.doc';
-            if (isArchive && currentArchivePreviewItem && currentArchivePreviewItem.title) {
-                defaultName = currentArchivePreviewItem.title.replace(/[\/:*?"<>|]/g, '_') + '.doc';
-            } else if (typeof getReportDefaultFileName === 'function') {
-                defaultName = getReportDefaultFileName('doc', currentPreviewMode || 'detailed');
-            }
-            if (!defaultName.endsWith('.doc')) defaultName += '.doc';
+            try {
+                var isArchive = false;
+                var archiveModal = document.getElementById('archive-print-preview-modal');
+                if (archiveModal && archiveModal.classList.contains('active')) {
+                    isArchive = true;
+                }
+                if (isArchive && currentArchivePreviewItem && currentArchivePreviewItem.title) {
+                    defaultName = currentArchivePreviewItem.title.replace(/[\/:*?"<>|]/g, '_') + '.doc';
+                } else if (typeof getReportDefaultFileName === 'function') {
+                    defaultName = getReportDefaultFileName('doc', currentPreviewMode || 'detailed');
+                }
+                if (!defaultName.endsWith('.doc')) defaultName += '.doc';
+            } catch(e) {}
 
-            const htmlContent = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40' dir='rtl'><head><meta charset='utf-8'><style>body{font-family:Arial,sans-serif;direction:rtl;} table{width:100%;border-collapse:collapse;} th,td{border:1px solid #000;padding:6px;text-align:center;}</style></head><body>${reportHtml}</body></html>`;
-            const url = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(htmlContent);
+            var cleanHtml = '';
+            if (reportEl) {
+                var clone = reportEl.cloneNode(true);
+                var noPrintEls = clone.querySelectorAll('.no-print, .print-preview-topbar, .preview-actions, button');
+                for (var n = 0; n < noPrintEls.length; n++) noPrintEls[n].remove();
+                cleanHtml = clone.innerHTML;
+            } else {
+                cleanHtml = buildReportHTML(currentPreviewMode || 'detailed');
+            }
+
+            const htmlContent = `\uFEFF<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40' dir='rtl'><head><meta charset='utf-8'><style>body{font-family:Arial,sans-serif;direction:rtl;} table{width:100%;border-collapse:collapse;} th,td{border:1px solid #000;padding:6px;text-align:center;}</style></head><body>${cleanHtml}</body></html>`;
+            const blob = new Blob([htmlContent], { type: 'application/msword;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
             link.download = defaultName || 'كشف_الدرجات.doc';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
             showToast('✅ تم تنزيل مستند Word بنجاح', 'success');
         }
 
