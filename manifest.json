@@ -1,0 +1,26 @@
+{
+  "name": "سجل الدرجات الذكي",
+  "short_name": "سجل الدرجات",
+  "description": "نظام رصد ومتابعة وإدارة درجات الطلاب الذكي للمعلمين والمعلمات - يعمل أوفلاين بدون إنترنت",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f172a",
+  "theme_color": "#0f766e",
+  "dir": "rtl",
+  "lang": "ar",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "256x256 192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}
