@@ -14,13 +14,7 @@
     <title>نظام إدارة الدرجات والمتابعة للمعلمين والمعلمات</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
-        <!-- مكتبة SheetJS لقراءة وتصدير ملفات الإكسل (المسار النسبي مع رابط احتياطي CDN) -->
-    <script src="./xlsx.full.min.js"></script>
-    <script>
-        if (typeof window.XLSX === 'undefined') {
-            document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"><\/script>');
-        }
-    </script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="license-guard.js"></script>
     <script>
         (function() {
@@ -1692,20 +1686,8 @@
             console.warn('[Blocked Native Confirm]:', msg);
             return false;
         };
-        // 1. استدعاء مكتبة XLSX الرسمية و Electron IPC
-        var XLSX = (typeof window !== 'undefined' && window.XLSX) ? window.XLSX : undefined;
-        if (!XLSX && typeof require !== 'undefined') {
-            try {
-                XLSX = require('xlsx');
-            } catch (e) {
-                try {
-                    XLSX = require('./xlsx.full.min.js');
-                } catch (e2) {}
-            }
-        }
-        if (!XLSX && typeof window !== 'undefined' && window.XLSX) {
-            XLSX = window.XLSX;
-        }
+        // 1. استدعاء مكتبة XLSX الرسمية
+        var XLSX = (typeof window !== 'undefined' && window.XLSX) ? window.XLSX : (typeof XLSX !== 'undefined' ? XLSX : null);
 
         var ipcRenderer;
         try {
@@ -3168,8 +3150,8 @@
         }
 
         function downloadSampleExcel() {
-            if (typeof XLSX === 'undefined') {
-                try { XLSX = require('xlsx'); } catch(e) {}
+            if (typeof XLSX === 'undefined' || !XLSX) {
+                if (typeof window !== 'undefined' && window.XLSX) XLSX = window.XLSX;
             }
             if (typeof XLSX === 'undefined' || !XLSX.utils) { 
                 showToast('تعذر العثور على مكتبة الإكسل المحلية.', 'danger'); 
@@ -3418,8 +3400,8 @@
             var file = e.target.files && e.target.files[0];
             if (!file) return;
 
-            if (typeof XLSX === 'undefined') {
-                try { XLSX = require('xlsx'); } catch(e) {}
+            if (typeof XLSX === 'undefined' || !XLSX) {
+                if (typeof window !== 'undefined' && window.XLSX) XLSX = window.XLSX;
             }
 
             if (typeof XLSX === 'undefined' || typeof XLSX.read !== 'function') {

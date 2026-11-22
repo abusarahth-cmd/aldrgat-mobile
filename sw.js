@@ -2,13 +2,12 @@
  * Service Worker - سجل الدرجات الذكي (PWA Offline Cache)
  */
 
-const CACHE_NAME = 'aldragat-pwa-v3';
+const CACHE_NAME = 'aldragat-pwa-v4';
 
 const STATIC_ASSETS = [
   './',
   './index.html',
   './license-guard.js',
-  './xlsx.full.min.js',
   './icon.png',
   './icon.ico',
   './manifest.json'
