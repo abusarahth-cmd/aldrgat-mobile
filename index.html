@@ -676,7 +676,280 @@
                 margin: 8mm;
             }
         }
-    </style>
+    
+        /* =========================================================================
+           نظام التصميم المتجاوب الشامل (Full Responsive Design - PC, iPad, Mobile)
+           ========================================================================= */
+
+        /* 1. الحاوية الرئيسية والتوسع على الشاشات الكبيرة (PC / Desktop) */
+        @media (min-width: 1024px) {
+            body {
+                flex-direction: row;
+                width: 100%;
+                max-width: 100vw;
+            }
+            .sidebar {
+                width: 260px !important;
+                min-width: 260px !important;
+                display: flex !important;
+                position: sticky !important;
+                top: 0 !important;
+                height: 100vh !important;
+                z-index: 1000 !important;
+            }
+            .main-content {
+                flex: 1 !important;
+                width: calc(100vw - 260px) !important;
+                max-width: calc(100vw - 260px) !important;
+                min-width: 0 !important;
+            }
+            .content-area {
+                width: 100% !important;
+                max-width: 100% !important;
+                box-sizing: border-box !important;
+                padding: 2rem 2.5rem !important;
+            }
+            .mobile-bottom-nav {
+                display: none !important;
+            }
+            .mobile-menu-btn, #mobile-menu-toggle {
+                display: none !important;
+            }
+            /* توزيع الأعمدة على الكمبيوتر: 4 أعمدة للإحصائيات و 2 للبطاقات المزدوجة */
+            .grid-4 {
+                display: grid !important;
+                grid-template-columns: repeat(4, 1fr) !important;
+                gap: 1.5rem !important;
+            }
+            .grid-2 {
+                display: grid !important;
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 1.5rem !important;
+            }
+            /* تحسين جداول الرصد على الكمبيوتر: خط واضح وعرض كامل دون تمرير إجباري */
+            .grade-table {
+                font-size: 13.5px !important;
+            }
+            .grade-table th {
+                padding: 8px 6px !important;
+                font-size: 12.5px !important;
+            }
+            .grade-table td {
+                padding: 6px 4px !important;
+                font-size: 13px !important;
+            }
+            .grade-table th.student-name-col, .grade-table td.student-name-col {
+                min-width: 180px !important;
+                font-size: 13.5px !important;
+                padding: 6px 10px !important;
+            }
+            .grade-input {
+                width: 44px !important;
+                min-width: 40px !important;
+                max-width: 50px !important;
+                height: 32px !important;
+                font-size: 13.5px !important;
+            }
+            .total-cell {
+                width: 82px !important;
+                min-width: 76px !important;
+                font-size: 13.5px !important;
+            }
+            .avg-cell {
+                width: 72px !important;
+                min-width: 66px !important;
+                font-size: 13px !important;
+            }
+            /* النوافذ المنبثقة على الكمبيوتر */
+            .modal-content {
+                max-width: 850px !important;
+                width: auto !important;
+                margin: 0 auto !important;
+            }
+        }
+
+        /* 2. شاشات الآيباد والأجهزة اللوحية (Tablet / iPad: 768px - 1023px) */
+        @media (min-width: 768px) and (max-width: 1023px) {
+            body {
+                flex-direction: row;
+                width: 100%;
+                max-width: 100vw;
+            }
+            .sidebar {
+                width: 240px !important;
+                min-width: 240px !important;
+                display: flex !important;
+                position: sticky !important;
+                top: 0 !important;
+                height: 100vh !important;
+                z-index: 1000 !important;
+            }
+            .main-content {
+                flex: 1 !important;
+                width: calc(100vw - 240px) !important;
+                max-width: calc(100vw - 240px) !important;
+                min-width: 0 !important;
+            }
+            .content-area {
+                padding: 1.5rem !important;
+            }
+            .mobile-bottom-nav {
+                display: none !important;
+            }
+            .mobile-menu-btn, #mobile-menu-toggle {
+                display: none !important;
+            }
+            /* توزيع الأعمدة على الآيباد: عمودان */
+            .grid-4 {
+                display: grid !important;
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 1.25rem !important;
+            }
+            .grid-2 {
+                display: grid !important;
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 1.25rem !important;
+            }
+            .modal-content {
+                max-width: 700px !important;
+                width: 90% !important;
+            }
+        }
+
+        /* 3. شاشات الجوال والآيفون والأندرويد (Mobile: < 768px) */
+        @media (max-width: 767px) {
+            body {
+                flex-direction: column !important;
+                width: 100% !important;
+                max-width: 100vw !important;
+                height: auto !important;
+                overflow-x: hidden !important;
+            }
+            .sidebar {
+                position: fixed !important;
+                top: 0 !important;
+                right: -290px !important;
+                width: 290px !important;
+                height: 100vh !important;
+                z-index: 10020 !important;
+                transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                box-shadow: -5px 0 25px rgba(0,0,0,0.5) !important;
+            }
+            .sidebar.mobile-open {
+                right: 0 !important;
+            }
+            .main-content {
+                width: 100% !important;
+                max-width: 100vw !important;
+                min-width: 0 !important;
+                height: auto !important;
+                overflow-y: visible !important;
+                /* مسافة أمان سفلية لعدم تداخل المحتوى مع شريط التنقل السفلي */
+                padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 74px) !important;
+            }
+            .content-area {
+                padding: 0.85rem !important;
+            }
+            .topbar {
+                padding-top: calc(env(safe-area-inset-top) + 10px) !important;
+                padding-bottom: 0.75rem !important;
+                padding-right: 0.85rem !important;
+                padding-left: 0.85rem !important;
+            }
+            .mobile-menu-btn, #mobile-menu-toggle {
+                display: inline-flex !important;
+            }
+            /* توزيع الأعمدة على الجوال: عمود واحد */
+            .grid-4, .grid-2 {
+                display: grid !important;
+                grid-template-columns: 1fr !important;
+                gap: 0.85rem !important;
+            }
+            /* تثبيت عمود اسم الطالب على الجوال مع التمرير الأفقي السلس */
+            .grade-table th.student-name-col, .grade-table td.student-name-col {
+                position: sticky !important;
+                right: 0 !important;
+                z-index: 10 !important;
+                box-shadow: -2px 0 6px rgba(0, 0, 0, 0.08) !important;
+            }
+            .grade-table td.student-name-col {
+                background: #ffffff !important;
+            }
+            body.theme-boys .grade-table th.student-name-col {
+                background: #f1f5f9 !important;
+            }
+            body.theme-girls .grade-table th.student-name-col {
+                background: #fae8ff !important;
+            }
+            /* النوافذ المنبثقة على الجوال بعرض 95% */
+            .modal-content {
+                width: 95% !important;
+                max-width: 95% !important;
+                margin: 0 auto !important;
+                padding: 1.25rem 1rem !important;
+                border-radius: 1rem !important;
+            }
+            /* شريط التنقل السفلي الثابت للجوال */
+            .mobile-bottom-nav {
+                display: flex !important;
+                position: fixed !important;
+                bottom: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                height: calc(env(safe-area-inset-bottom, 0px) + 62px) !important;
+                padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+                background: rgba(15, 23, 42, 0.98) !important;
+                backdrop-filter: blur(12px) !important;
+                -webkit-backdrop-filter: blur(12px) !important;
+                border-top: 1px solid rgba(255, 255, 255, 0.14) !important;
+                z-index: 10005 !important;
+                justify-content: space-around !important;
+                align-items: center !important;
+                box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.25) !important;
+            }
+        }
+
+        /* تنسيق عناصر شريط التنقل السفلي */
+        .bottom-nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            font-size: 0.72rem;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 6px 2px;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .bottom-nav-item i {
+            font-size: 1.15rem;
+            transition: transform 0.2s ease, color 0.2s ease;
+        }
+        .bottom-nav-item:hover {
+            color: #cbd5e1;
+        }
+        .bottom-nav-item.active {
+            color: #38bdf8 !important;
+            font-weight: 800;
+        }
+        .bottom-nav-item.active i {
+            transform: scale(1.15);
+            color: #38bdf8 !important;
+        }
+        body.theme-girls .bottom-nav-item.active,
+        body.theme-girls .bottom-nav-item.active i {
+            color: #f0abfc !important;
+        }
+
+</style>
 </head>
 <body>
 
@@ -981,73 +1254,70 @@
                         <!-- 2. واجهة الوضع الثاني: الربط مع واتساب في جهاز آخر (عبر QR وخادم خارجي) -->
                         <div id="wa-server-panel" style="display: none;">
                             
-                            <!-- تبديل نوع الربط بجهاز آخر: خيارين واضحين وقطعيين -->
-                            <div style="background: #f1f5f9; padding: 6px; border-radius: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 1.25rem; border: 1.5px solid #cbd5e1;">
-                                <button type="button" id="wa-sub-tab-linked-btn" class="btn" style="padding: 0.65rem 0.5rem; border-radius: 8px; font-weight: 800; font-size: 0.85rem; transition: all 0.2s; background: #0f766e; color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" onclick="setWhatsAppSubTab('linked')">
-                                    <i class="fas fa-link"></i> أ) الربط الفعلي عبر واتساب (الأجهزة المرتبطة)
-                                </button>
-                                <button type="button" id="wa-sub-tab-camera-btn" class="btn" style="padding: 0.65rem 0.5rem; border-radius: 8px; font-weight: 800; font-size: 0.85rem; transition: all 0.2s; background: transparent; color: #475569;" onclick="setWhatsAppSubTab('camera')">
-                                    <i class="fas fa-camera"></i> ب) الإرسال السريع بدون خادم (عبر كاميرا الجوال)
-                                </button>
-                            </div>
-
-                            <!-- الخيار (أ): الربط الفعلي عبر واتساب (الأجهزة المرتبطة) -->
-                            <div id="wa-subpanel-linked" style="background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 14px; padding: 1.25rem; margin-bottom: 1rem;">
-                                <div style="display: flex; align-items: flex-start; gap: 10px; background: #f0fdf4; border: 1px solid #86efac; border-radius: 10px; padding: 0.85rem; margin-bottom: 1rem;">
-                                    <i class="fas fa-info-circle" style="color: #16a34a; font-size: 1.25rem; margin-top: 2px;"></i>
-                                    <div style="font-size: 0.85rem; color: #166534; line-height: 1.6;">
-                                        <strong>طريقة الربط الرسمية:</strong> افتح واتساب في هاتفك &gt; <strong>الإعدادات</strong> (أو النقاط الثلاث) &gt; <strong>الأجهزة المرتبطة (Linked Devices)</strong> &gt; اضغط <strong>ربط جهاز</strong> لمسح رمز الجلسة.
-                                    </div>
-                                </div>
-
-                                <div style="text-align: center; margin-bottom: 1.25rem;">
-                                    <button type="button" class="btn" style="background: #25d366; color: #fff; font-weight: 800; padding: 0.75rem 1.25rem; border-radius: 10px; font-size: 0.95rem; box-shadow: 0 4px 10px rgba(37, 211, 102, 0.3); border: none; cursor: pointer;" onclick="window.open('https://web.whatsapp.com', '_blank')">
-                                        <i class="fas fa-desktop"></i> فتح WhatsApp Web في وضع سطح المكتب للربط المباشر
-                                    </button>
-                                </div>
-
-                                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem; text-align: center;">
-                                    <div style="font-weight: 700; color: #334155; font-size: 0.88rem; margin-bottom: 0.5rem;">
-                                        <i class="fas fa-server"></i> خادم الإرسال الآلي (Node.js / whatsapp-web.js):
-                                    </div>
-                                    <p style="font-size: 0.82rem; color: #64748b; margin-bottom: 0.75rem; line-height: 1.6;">
-                                        إذا كان لديك خادم Node.js متصل، أدخل رابطه هنا لتوليد رمز الجلسة التلقائي للأجهزة المرتبطة:
-                                    </p>
-                                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
-                                        <input type="url" id="wa-server-url-input" class="form-control" placeholder="مثال: http://localhost:3000 أو https://your-server.com" style="flex: 1; min-width: 220px; direction: ltr; font-family: monospace; font-size: 0.85rem;">
-                                        <button type="button" class="btn btn-primary" onclick="saveAndTestWhatsAppServer()"><i class="fas fa-plug"></i> اختبار وحفظ</button>
-                                    </div>
-                                    <div id="wa-server-status-info" style="font-size: 0.82rem; color: #475569; line-height: 1.5; margin-bottom: 0.75rem;"></div>
-
-                                    <div id="wa-server-qr-box" style="margin-top: 1rem; display: none;">
-                                        <p style="font-size: 0.82rem; font-weight: 700; color: #047857; margin-bottom: 0.5rem;">رمز جلسة WhatsApp Web الحقيقي من الخادم:</p>
-                                        <div id="wa-server-qr-target" style="display: inline-block; padding: 10px; background: #fff; border-radius: 8px; border: 1px solid #cbd5e1;"></div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- الخيار (ب): الإرسال السريع بدون خادم (عبر كاميرا الجوال) -->
-                            <div id="wa-subpanel-camera" style="display: none; background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 14px; padding: 1.25rem; margin-bottom: 1rem; text-align: center;">
+                            <!-- لوحة الربط التقليدي عبر الأجهزة المرتبطة (Baileys / whatsapp-web.js) -->
+                            <div style="background: #ffffff; border: 1.5px solid #0f766e; border-radius: 14px; padding: 1.25rem; margin-bottom: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
                                 
-                                <!-- تنبيه بارز باللون الأحمر -->
-                                <div style="background: #fef2f2; border: 2px solid #ef4444; border-radius: 10px; padding: 0.85rem 1rem; color: #b91c1c; font-weight: 800; font-size: 0.95rem; margin-bottom: 1.25rem; text-align: center; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 6px rgba(239,68,68,0.15);">
-                                    <i class="fas fa-exclamation-triangle" style="font-size: 1.35rem;"></i>
-                                    <span>⚠️ امسح هذا الرمز بكاميرا الآيفون العادية (وليس من داخل واتساب) لفتح المحادثة فوراً</span>
+                                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid #e2e8f0;">
+                                    <div style="font-weight: 800; color: #0f766e; font-size: 1.05rem; display: flex; align-items: center; gap: 8px;">
+                                        <i class="fas fa-link"></i> الربط الرسمي مع واتساب (الأجهزة المرتبطة)
+                                    </div>
+                                    <span id="wa-status-badge" class="badge badge-warning" style="font-size: 0.85rem; padding: 6px 14px;">
+                                        <i class="fas fa-circle-notch fa-spin"></i> غير متصل
+                                    </span>
                                 </div>
 
-                                <div style="display: flex; justify-content: center; align-items: center; min-height: 190px; margin-bottom: 0.75rem;">
-                                    <div id="wa-local-qrcode" style="padding: 10px; background: #fff; border-radius: 10px; border: 1px solid #e2e8f0; display: inline-block;"></div>
+                                <!-- إرشادات الربط التقليدي من الهاتف -->
+                                <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1.25rem; text-align: right;">
+                                    <h5 style="color: #166534; font-weight: 800; font-size: 0.95rem; margin-bottom: 0.6rem; display: flex; align-items: center; gap: 6px;">
+                                        <i class="fas fa-mobile-alt"></i> خطوات الربط التقليدية من تطبيق واتساب في هاتفك:
+                                    </h5>
+                                    <ol style="margin-right: 1.25rem; font-size: 0.88rem; color: #15803d; line-height: 1.9; margin-bottom: 0;">
+                                        <li>افتح تطبيق <strong>واتساب</strong> في هاتفك الشخصي.</li>
+                                        <li>انتقل إلى <strong>الإعدادات ⚙️</strong> (في الآيفون) أو اضغط على <strong>النقاط الثلاث ⁝</strong> (في الأندرويد).</li>
+                                        <li>اختر <strong>(الأجهزة المرتبطة - Linked Devices)</strong> ثم اضغط <strong>(ربط جهاز)</strong>.</li>
+                                        <li>وجّه كاميرا الواتساب نحو رمز الـ QR المعروض أدناه لمسحه والربط فوراً.</li>
+                                    </ol>
                                 </div>
-                                <p id="wa-qr-label" style="font-size: 0.88rem; font-weight: 700; color: #1e293b; margin-bottom: 0.75rem;">
-                                    امسح الرمز بكاميرا الجوال العادية لفتح محادثة واتساب
-                                </p>
-                                <div style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
-                                    <button type="button" class="btn btn-outline" style="font-size: 0.82rem; padding: 0.45rem 0.9rem;" onclick="generateLatestStudentQR()">
-                                        <i class="fas fa-comment-alt"></i> باركود رسالة الطالب المختار
-                                    </button>
-                                    <button type="button" class="btn btn-outline" style="font-size: 0.82rem; padding: 0.45rem 0.9rem;" onclick="generateInstantQR('https://wa.me', 'رابط محادثة واتساب عام')">
-                                        <i class="fab fa-whatsapp"></i> باركود واتساب عام
-                                    </button>
+
+                                <!-- إعدادات رابط الخادم -->
+                                <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; padding: 1rem; margin-bottom: 1.25rem;">
+                                    <label style="font-size: 0.88rem; font-weight: 700; color: #334155; margin-bottom: 0.4rem; display: block;">
+                                        <i class="fas fa-server"></i> رابط خادم الإرسال والـ QR (WA_SERVER_URL):
+                                    </label>
+                                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                        <input type="url" id="wa-server-url-input" class="form-control" placeholder="http://localhost:3000 أو رابط خادمك السحابي" style="flex: 1; min-width: 240px; direction: ltr; font-family: monospace; font-size: 0.88rem;">
+                                        <button type="button" class="btn btn-primary" onclick="connectWhatsAppServer(true)" style="font-weight: 700; padding: 0.55rem 1.25rem;">
+                                            <i class="fas fa-qrcode"></i> ربط واتساب (جلب QR)
+                                        </button>
+                                        <button type="button" class="btn btn-outline" onclick="checkWhatsAppServerStatus(true)" style="font-weight: 700; padding: 0.55rem 1rem;">
+                                            <i class="fas fa-sync-alt"></i> فحص الاتصال
+                                        </button>
+                                        <button type="button" class="btn btn-outline" onclick="logoutWhatsAppServer()" style="font-weight: 700; padding: 0.55rem 1rem; color: #dc2626; border-color: #fca5a5;">
+                                            <i class="fas fa-sign-out-alt"></i> فصل الجهاز
+                                        </button>
+                                    </div>
+                                    <div id="wa-server-status-info" style="font-size: 0.82rem; color: #64748b; margin-top: 0.5rem; line-height: 1.5;"></div>
+                                </div>
+
+                                <!-- مربع عرض باركود QR الحقيقي المأخوذ من الخادم -->
+                                <div id="wa-real-qr-box" style="text-align: center; padding: 1.5rem; background: #fafafa; border: 2px dashed #cbd5e1; border-radius: 12px; margin-bottom: 0.5rem;">
+                                    <div id="wa-qr-loading-spinner" style="display: none; padding: 2rem 0;">
+                                        <i class="fas fa-spinner fa-spin fa-2x" style="color: #0f766e;"></i>
+                                        <p style="margin-top: 0.75rem; font-size: 0.9rem; color: #475569; font-weight: 600;">جاري جلب رمز QR الحقيقي من الخادم...</p>
+                                    </div>
+
+                                    <div id="wa-qr-canvas-wrapper" style="display: flex; justify-content: center; align-items: center; min-height: 220px;">
+                                        <div id="wa-real-qr-canvas" style="padding: 12px; background: #ffffff; border-radius: 10px; border: 1px solid #cbd5e1; display: inline-block;">
+                                            <p style="color: #64748b; font-size: 0.9rem; margin: 2rem 1rem;">
+                                                <i class="fas fa-qrcode fa-3x" style="color: #94a3b8; display: block; margin-bottom: 0.75rem;"></i>
+                                                اضغط على <strong>"ربط واتساب (جلب QR)"</strong> أعلاه لعرض رمز الجلسة الرسمي.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <p id="wa-qr-expiry-hint" style="font-size: 0.82rem; color: #64748b; margin-top: 0.75rem; margin-bottom: 0;">
+                                        يتم تحديث رمز الجلسة تلقائياً كل 20 ثانية حتى يتم مسحه من الهاتف.
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -1996,9 +2266,23 @@
                 for (var j = 0; j < navs.length; j++) {
                     navs[j].classList.remove('active');
                 }
-                if (el) {
+                if (el && el.classList.contains('nav-item')) {
                     el.classList.add('active');
-                } else {
+                }
+                var sidebarMatch = document.querySelector('.sidebar .nav-item[onclick*="' + tabId + '"]');
+                if (sidebarMatch) sidebarMatch.classList.add('active');
+
+                // مزامنة شريط التنقل السفلي للجوال
+                var bNavItems = document.querySelectorAll('.bottom-nav-item');
+                for (var b = 0; b < bNavItems.length; b++) {
+                    if (bNavItems[b].getAttribute('data-tab') === tabId) {
+                        bNavItems[b].classList.add('active');
+                    } else {
+                        bNavItems[b].classList.remove('active');
+                    }
+                }
+
+                if (!el && !sidebarMatch) {
                     var defaultEl = document.querySelector('.nav-item[onclick*="\'' + tabId + '\'"]');
                     if (defaultEl) defaultEl.classList.add('active');
                 }
@@ -2712,90 +2996,223 @@
             return isIPhoneOrIPad || isIPadOS;
         }
 
-        // دالة تبديل الخيارين في شاشة الواتساب: (أ) الربط الفعلي للأجهزة المرتبطة، و (ب) الإرسال عبر كاميرا الجوال
-        function setWhatsAppSubTab(tab) {
-            if (!appData.settings) appData.settings = {};
-            appData.settings.waSubTab = tab;
-            var btnLinked = document.getElementById('wa-sub-tab-linked-btn');
-            var btnCamera = document.getElementById('wa-sub-tab-camera-btn');
-            var panelLinked = document.getElementById('wa-subpanel-linked');
-            var panelCamera = document.getElementById('wa-subpanel-camera');
+        // =========================================================================
+        // ربط واتساب الحقيقي عبر خادم WhatsApp Web / Baileys (مسارات /qr و /status و /send-bulk)
+        // =========================================================================
+        var waQrPollInterval = null;
+        var waQrTimeout = null;
 
-            if (tab === 'camera') {
-                if (btnCamera) {
-                    btnCamera.style.background = '#0f766e';
-                    btnCamera.style.color = '#ffffff';
-                    btnCamera.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-                }
-                if (btnLinked) {
-                    btnLinked.style.background = 'transparent';
-                    btnLinked.style.color = '#475569';
-                    btnLinked.style.boxShadow = 'none';
-                }
-                if (panelCamera) panelCamera.style.display = 'block';
-                if (panelLinked) panelLinked.style.display = 'none';
-                generateLatestStudentQR();
-            } else {
-                if (btnLinked) {
-                    btnLinked.style.background = '#0f766e';
-                    btnLinked.style.color = '#ffffff';
-                    btnLinked.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-                }
-                if (btnCamera) {
-                    btnCamera.style.background = 'transparent';
-                    btnCamera.style.color = '#475569';
-                    btnCamera.style.boxShadow = 'none';
-                }
-                if (panelLinked) panelLinked.style.display = 'block';
-                if (panelCamera) panelCamera.style.display = 'none';
-                updateServerModeUI();
+        function getWhatsAppServerUrl() {
+            var input = document.getElementById('wa-server-url-input');
+            var val = input ? input.value.trim() : '';
+            if (val) return val.replace(/\/+$/, '');
+            if (appData.settings && appData.settings.whatsappServerUrl) {
+                return appData.settings.whatsappServerUrl.replace(/\/+$/, '');
             }
+            return 'http://localhost:3000';
         }
 
-        // دوال توليد باركود QR المباشر والفوري على الجوال
-        var currentInstantQrInstance = null;
+        async function connectWhatsAppServer(showUserToast) {
+            var serverUrl = getWhatsAppServerUrl();
+            if (!appData.settings) appData.settings = {};
+            appData.settings.whatsappServerUrl = serverUrl;
+            await saveData();
 
-        function generateInstantQR(textToEncode, labelText) {
-            var qrContainer = document.getElementById('wa-local-qrcode');
-            var qrLabel = document.getElementById('wa-qr-label');
-            if (!qrContainer) return;
+            var input = document.getElementById('wa-server-url-input');
+            if (input) input.value = serverUrl;
 
-            qrContainer.innerHTML = '';
-            if (qrLabel && labelText) qrLabel.textContent = labelText;
+            var statusInfo = document.getElementById('wa-server-status-info');
+            var spinner = document.getElementById('wa-qr-loading-spinner');
+            var canvasWrapper = document.getElementById('wa-qr-canvas-wrapper');
+            var qrTarget = document.getElementById('wa-real-qr-canvas');
+
+            if (spinner) spinner.style.display = 'block';
+            if (canvasWrapper) canvasWrapper.style.display = 'none';
+            if (statusInfo) statusInfo.innerHTML = '<span style="color: #0284c7;"><i class="fas fa-spinner fa-spin"></i> جاري الاتصال بالخادم: ' + serverUrl + '...</span>';
+
+            if (showUserToast) showToast('جاري طلب رمز QR من الخادم...', 'info');
 
             try {
-                if (typeof QRCode !== 'undefined') {
-                    currentInstantQrInstance = new QRCode(qrContainer, {
-                        text: textToEncode || 'https://wa.me',
-                        width: 180,
-                        height: 180,
-                        colorDark: '#0f172a',
-                        colorLight: '#ffffff',
-                        correctLevel: QRCode.CorrectLevel.M
-                    });
-                } else {
-                    qrContainer.innerHTML = '<img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent(textToEncode || 'https://wa.me') + '" style="width: 180px; height: 180px; border-radius: 8px;">';
+                // 1. أولاً: فحص هل الخادم متصل بالفعل؟
+                var statusResp = await fetch(serverUrl + '/status', { method: 'GET', signal: AbortSignal.timeout(5000) }).catch(function() {
+                    return fetch(serverUrl + '/api/status', { method: 'GET', signal: AbortSignal.timeout(5000) });
+                });
+
+                if (statusResp && statusResp.ok) {
+                    var sData = await statusResp.json();
+                    if (sData && sData.connected) {
+                        setWhatsAppConnectedUI(true, serverUrl);
+                        if (showUserToast) showToast('✅ تم الاتصال: واتساب متصل بالفعل!', 'success');
+                        return;
+                    }
                 }
-            } catch (e) {
-                console.error('QR generation error:', e);
+
+                // 2. جلب رمز الـ QR الفعلي من مسار /qr أو /api/qr
+                var qrResp = await fetch(serverUrl + '/qr', { method: 'GET', signal: AbortSignal.timeout(7000) }).catch(function() {
+                    return fetch(serverUrl + '/api/qr', { method: 'GET', signal: AbortSignal.timeout(7000) });
+                });
+
+                if (!qrResp || !qrResp.ok) {
+                    throw new Error('الخادم لم يرجع رمز QR نشط');
+                }
+
+                var contentType = qrResp.headers.get('content-type') || '';
+                if (spinner) spinner.style.display = 'none';
+                if (canvasWrapper) canvasWrapper.style.display = 'flex';
+
+                if (contentType.includes('image')) {
+                    // الرمز عبارة عن صورة مباشرة
+                    var blob = await qrResp.blob();
+                    var imgUrl = URL.createObjectURL(blob);
+                    qrTarget.innerHTML = '<img src="' + imgUrl + '" style="width: 220px; height: 220px; border-radius: 8px;" alt="WhatsApp QR">';
+                } else {
+                    // الرمز نصي أو JSON
+                    var textOrJson = await qrResp.text();
+                    var qrString = '';
+                    try {
+                        var parsed = JSON.parse(textOrJson);
+                        if (parsed.connected) {
+                            setWhatsAppConnectedUI(true, serverUrl);
+                            return;
+                        }
+                        if (parsed.qrImage) {
+                            qrTarget.innerHTML = '<img src="' + parsed.qrImage + '" style="width: 220px; height: 220px; border-radius: 8px;" alt="WhatsApp QR">';
+                            qrString = null;
+                        } else {
+                            qrString = parsed.qr || parsed.code || textOrJson;
+                        }
+                    } catch (e) {
+                        qrString = textOrJson.trim();
+                    }
+
+                    if (qrString) {
+                        qrTarget.innerHTML = '';
+                        if (typeof QRCode !== 'undefined') {
+                            new QRCode(qrTarget, {
+                                text: qrString,
+                                width: 220,
+                                height: 220,
+                                colorDark: '#0f172a',
+                                colorLight: '#ffffff',
+                                correctLevel: QRCode.CorrectLevel.M
+                            });
+                        } else {
+                            qrTarget.innerHTML = '<p style="color: #dc2626;">تعذر تحميل مكتبة QRCode</p>';
+                        }
+                    }
+                }
+
+                setWhatsAppConnectedUI(false, serverUrl, 'بانتظار مسح الرمز من واتساب الهاتف');
+                if (statusInfo) statusInfo.innerHTML = '<span style="color: #059669; font-weight: 700;">✅ تم جلب رمز QR بنجاح! امسحه الآن من واتساب (الأجهزة المرتبطة).</span>';
+                if (showUserToast) showToast('تم جلب رمز QR، امسحه الآن من هاتفك', 'info');
+
+                // بدء الاستطلاع التلقائي للتحقق من إتمام الربط
+                startWhatsAppStatusPolling(serverUrl);
+
+            } catch (err) {
+                if (spinner) spinner.style.display = 'none';
+                if (canvasWrapper) canvasWrapper.style.display = 'flex';
+                qrTarget.innerHTML = '<div style="color: #dc2626; padding: 1.5rem;"><i class="fas fa-exclamation-triangle fa-2x"></i><p style="margin-top: 0.5rem; font-weight: 700;">تعذر جلب رمز QR من الخادم</p><p style="font-size: 0.8rem; color: #64748b;">تأكد من تشغيل خادم Node.js (Baileys / whatsapp-web) على الرابط: ' + serverUrl + '</p></div>';
+                setWhatsAppConnectedUI(false, serverUrl, 'تعذر الاتصال بالخادم');
+                if (statusInfo) statusInfo.innerHTML = '<span style="color: #dc2626; font-weight: 700;">⚠️ فشل الاتصال بالخادم: ' + (err.message || 'خطأ في الشبكة') + '</span>';
+                if (showUserToast) showToast('تعذر الاتصال بخادم الواتساب', 'danger');
             }
         }
 
-        function generateLatestStudentQR() {
-            if (currentWhatsAppStudent && currentWhatsAppStudent.phone) {
-                var p = currentWhatsAppStudent.phone.replace(/[^\d]/g, '');
-                if (p.startsWith('00966')) p = '966' + p.substring(5);
-                else if (p.startsWith('966')) {}
-                else if (p.startsWith('05')) p = '9665' + p.substring(2);
-                else if (p.startsWith('5')) p = '966' + p;
-                else if (p.startsWith('0')) p = '966' + p.substring(1);
+        function startWhatsAppStatusPolling(serverUrl) {
+            if (waQrPollInterval) clearInterval(waQrPollInterval);
+            var attempts = 0;
+            waQrPollInterval = setInterval(async function() {
+                attempts++;
+                if (attempts > 30) { // توقف بعد 90 ثانية
+                    clearInterval(waQrPollInterval);
+                    return;
+                }
+                try {
+                    var resp = await fetch(serverUrl + '/status', { method: 'GET' }).catch(function() {
+                        return fetch(serverUrl + '/api/status');
+                    });
+                    if (resp && resp.ok) {
+                        var data = await resp.json();
+                        if (data && data.connected) {
+                            clearInterval(waQrPollInterval);
+                            setWhatsAppConnectedUI(true, serverUrl);
+                            showToast('🎉 تم ربط واتساب بنجاح وجلسة الإرسال نشطة!', 'success');
+                        }
+                    }
+                } catch(e) {}
+            }, 3000);
+        }
 
-                var msg = document.getElementById('wa-message-text') ? document.getElementById('wa-message-text').value.trim() : '';
-                var url = 'https://wa.me/' + p + (msg ? ('?text=' + encodeURIComponent(msg)) : '');
-                generateInstantQR(url, 'باركود مراسلة ولي أمر: ' + currentWhatsAppStudent.name);
-                showToast('تم توليد باركود رسالة الطالب', 'success');
+        async function checkWhatsAppServerStatus(showUserToast) {
+            var serverUrl = getWhatsAppServerUrl();
+            var statusInfo = document.getElementById('wa-server-status-info');
+            if (statusInfo) statusInfo.innerHTML = '<span style="color: #0284c7;">جاري فحص الاتصال بالخادم...</span>';
+
+            try {
+                var resp = await fetch(serverUrl + '/status', { method: 'GET', signal: AbortSignal.timeout(5000) }).catch(function() {
+                    return fetch(serverUrl + '/api/status', { method: 'GET', signal: AbortSignal.timeout(5000) });
+                });
+                if (resp && resp.ok) {
+                    var data = await resp.json();
+                    if (data && data.connected) {
+                        setWhatsAppConnectedUI(true, serverUrl);
+                        if (statusInfo) statusInfo.innerHTML = '<span style="color: #16a34a; font-weight: 700;">✅ متصل وجاهز للإرسال الآلي من رقمك المرتبط!</span>';
+                        if (showUserToast) showToast('✅ خادم الواتساب متصل بنجاح!', 'success');
+                        return;
+                    }
+                }
+                setWhatsAppConnectedUI(false, serverUrl, 'الخادم يعمل، ولكن غير مرتبط بواتساب');
+                if (statusInfo) statusInfo.innerHTML = '<span style="color: #f59e0b; font-weight: 700;">⚠️ الخادم يستجيب، ولكن لم يتم مسح رمز الـ QR بعد.</span>';
+                if (showUserToast) showToast('الخادم يعمل ولكن غير مرتبط بواتساب', 'warning');
+            } catch (e) {
+                setWhatsAppConnectedUI(false, serverUrl, 'تعذر الاتصال بالخادم');
+                if (statusInfo) statusInfo.innerHTML = '<span style="color: #dc2626; font-weight: 700;">❌ تعذر الوصول للخادم: ' + serverUrl + '</span>';
+                if (showUserToast) showToast('تعذر الاتصال بالخادم', 'danger');
+            }
+        }
+
+        async function logoutWhatsAppServer() {
+            var serverUrl = getWhatsAppServerUrl();
+            if (waQrPollInterval) clearInterval(waQrPollInterval);
+            try {
+                await fetch(serverUrl + '/logout', { method: 'POST' }).catch(function() {
+                    return fetch(serverUrl + '/api/logout', { method: 'POST' });
+                });
+            } catch(e) {}
+            setWhatsAppConnectedUI(false, serverUrl, 'تم تسجيل الخروج');
+            showToast('تم تسجيل الخروج وفصل جلسة الواتساب', 'info');
+        }
+
+        function setWhatsAppConnectedUI(isConnected, serverUrl, statusCustom) {
+            if (!appData.settings) appData.settings = {};
+            appData.settings.whatsappConnected = isConnected;
+
+            var badge = document.getElementById('wa-status-badge');
+            var indBadge = document.getElementById('wa-connection-indicator');
+            var qrTarget = document.getElementById('wa-real-qr-canvas');
+
+            if (isConnected) {
+                if (badge) {
+                    badge.className = 'badge badge-success';
+                    badge.innerHTML = '<i class="fas fa-check-circle"></i> متصل بالواتساب';
+                }
+                if (indBadge) {
+                    indBadge.className = 'badge badge-success';
+                    indBadge.textContent = 'متصل (الأجهزة المرتبطة)';
+                }
+                if (qrTarget) {
+                    qrTarget.innerHTML = '<div style="color: #16a34a; padding: 2rem 1rem;"><i class="fas fa-check-circle fa-4x" style="color: #22c55e; margin-bottom: 1rem;"></i><h4 style="font-weight: 800; color: #15803d; margin-bottom: 0.5rem;">واتساب متصل بنجاح!</h4><p style="font-size: 0.88rem; color: #166534;">يمكنك الآن إرسال التقارير والرسائل مباشرة من رقمك المرتبط.</p></div>';
+                }
             } else {
-                generateInstantQR('https://wa.me', 'رابط محادثة واتساب عام (اختر طالباً لتخصيص الباركود)');
+                if (badge) {
+                    badge.className = 'badge badge-warning';
+                    badge.innerHTML = '<i class="fas fa-times-circle"></i> ' + (statusCustom || 'غير متصل');
+                }
+                if (indBadge) {
+                    indBadge.className = 'badge badge-warning';
+                    indBadge.textContent = (statusCustom || 'غير متصل');
+                }
             }
         }
 
@@ -3500,38 +3917,42 @@
                 return;
             }
 
-            // الوضع الثاني: الإرسال عبر خادم خارجي
-            var serverUrl = (appData.settings && appData.settings.whatsappServerUrl) ? appData.settings.whatsappServerUrl.trim() : '';
+// الوضع الثاني: الإرسال عبر خادم WhatsApp Web / Baileys (مسار /send-bulk أو /send)
+            var serverUrl = getWhatsAppServerUrl();
+            showToast('⏳ جاري الإرسال عبر خادم الواتساب المرتبط...', 'info');
 
-            if (typeof ipcRenderer !== 'undefined' && ipcRenderer && typeof ipcRenderer.invoke === 'function') {
-                showToast('⏳ جاري الإرسال عبر خادم الواتساب...', 'info');
-                try {
-                    var res = await ipcRenderer.invoke('send-whatsapp-message', { phone: p, message: msgText });
-                    if (res && res.success) {
-                        closeWhatsAppModal();
-                        showToast('✅ تم إرسال الرسالة بنجاح عبر الخادم', 'success');
-                        return;
-                    }
-                } catch(e) {}
-            }
+            try {
+                // محاولة الإرسال لمسار /send-bulk أولاً
+                var bulkPayload = {
+                    messages: [{ phone: p, message: msgText, name: currentWhatsAppStudent ? currentWhatsAppStudent.name : '' }],
+                    phone: p,
+                    message: msgText
+                };
 
-            if (serverUrl) {
-                showToast('⏳ جاري إرسال الرسالة عبر الخادم (' + serverUrl + ')...', 'info');
-                try {
-                    var sResp = await fetch(serverUrl + '/api/send', {
+                var sResp = await fetch(serverUrl + '/send-bulk', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(bulkPayload),
+                    signal: AbortSignal.timeout(10000)
+                }).catch(function() {
+                    return fetch(serverUrl + '/send', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ phone: p, message: msgText })
+                        body: JSON.stringify({ phone: p, message: msgText }),
+                        signal: AbortSignal.timeout(10000)
                     });
-                    if (sResp.ok) {
-                        closeWhatsAppModal();
-                        showToast('✅ تم إرسال الرسالة بنجاح عبر الخادم', 'success');
-                        return;
-                    }
-                } catch (sErr) {}
+                });
+
+                if (sResp && sResp.ok) {
+                    closeWhatsAppModal();
+                    showToast('✅ تم إرسال رسالة الطالب بنجاح عبر الواتساب المرتبط!', 'success');
+                    return;
+                }
+            } catch (sErr) {
+                console.warn('Server send failed, falling back:', sErr);
             }
 
-            // تحويل سلس للوضع المباشر إذا تعذر الاتصال بالخادم
+                        // تحويل سلس للوضع المباشر إذا تعذر الاتصال بالخادم
             var waUrlFallback = 'https://wa.me/' + p + '?text=' + encodeURIComponent(msgText);
             window.open(waUrlFallback, '_blank');
             closeWhatsAppModal();
@@ -5313,11 +5734,32 @@
             window.print();
         }
 
-        async function printCurrentPreview() {
+        function printCurrentPreview() {
+            // فتح نافذة الطباعة فوراً وبشكل متزامن داخل حدث النقر قبل أي تأخير لمنع حظرها
+            var printWin = window.open('', '_blank');
+            if (!printWin) {
+                showToast('يرجى السماح بالنوافذ المنبثقة (Popups) لعرض شاشة الطباعة', 'warning');
+                return;
+            }
+
             var fullHtml = buildFullDocumentHTML(currentPreviewMode);
-            var defaultName = getReportDefaultFileName('pdf', currentPreviewMode);
-            var sheetEl = document.getElementById('print-preview-sheet');
-            await printViaIOSShareOrPrint(sheetEl, defaultName, currentPreviewOrientation || 'landscape', fullHtml);
+            try {
+                printWin.document.open();
+                printWin.document.write(fullHtml);
+                printWin.document.close();
+                printWin.focus();
+                setTimeout(function() {
+                    try {
+                        printWin.focus();
+                        printWin.print();
+                    } catch (e) {
+                        console.error('Print trigger error:', e);
+                    }
+                }, 400);
+            } catch (err) {
+                console.error('Direct print failed:', err);
+                showToast('تعذر فتح شاشة الطباعة، يرجى المحاولة مرة أخرى', 'danger');
+            }
         }
 
         function printReport(mode) {
@@ -5373,130 +5815,90 @@
                 '</body></html>';
         }
 
-        // دالة موحدة لتصدير PDF عالي الدقة عبر html2pdf (قائمة المشاركة / حفظ بالملفات على iOS، وتنزيل تلقائي على PC/Android)
+        // دالة موحدة لتصدير PDF عالي الدقة وتقسيم الصفحات كل 25 صفا لمنع انهيار المتصفح في الكشوف الكبيرة
         async function exportElementToPDF(targetElement, defaultName, orientation) {
-            showToast('جاري إعداد ملف PDF...', 'info');
-
-            var opt = {
-                margin: [6, 6, 6, 6],
-                filename: defaultName,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff' },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: orientation || 'landscape' }
-            };
+            if (!targetElement) {
+                showToast('لم يتم العثور على محتوى الكشف!', 'warning');
+                return;
+            }
+            showToast('جاري تجهيز وتقسيم صفحات ملف PDF...', 'info');
 
             try {
-                if (typeof html2pdf !== 'undefined' && targetElement) {
-                    var blob = await html2pdf().set(opt).from(targetElement).outputPdf('blob');
-                    var pdfFile = new File([blob], defaultName, { type: 'application/pdf' });
+                // استنساخ العنصر لتطبيق قواعد تقسيم الصفحات كل 25 صفا دون التأثير على الشاشة
+                var clone = targetElement.cloneNode(true);
+                clone.style.width = '100%';
+                clone.style.maxWidth = '100%';
 
-                    // 1. نظام iOS / iPadOS: استدعاء قائمة مشاركة النظام الأصلية كخيار أساسي لحفظ الملف في تطبيق "الملفات"
-                    if (isIOSDevice()) {
-                        var canShare = false;
-                        try {
-                            canShare = navigator.canShare && navigator.canShare({ files: [pdfFile] });
-                        } catch(e) {}
-
-                        if (navigator.share && canShare) {
-                            try {
-                                await navigator.share({
-                                    files: [pdfFile],
-                                    title: defaultName
-                                });
-                                showToast('✅ تم فتح قائمة المشاركة (اختر "حفظ في الملفات")', 'success');
-                                return;
-                            } catch (shErr) {
-                                if (shErr.name === 'AbortError') return; // قام المستخدم بإغلاق القائمة
-                                console.warn('Share error on iOS, fallback to new tab:', shErr);
-                            }
+                // تقسيم الصفحات تلقائياً كل 25 صفا
+                var rows = clone.querySelectorAll('table.report-table tbody tr');
+                if (rows && rows.length > 0) {
+                    for (var r = 0; r < rows.length; r++) {
+                        rows[r].style.pageBreakInside = 'avoid';
+                        rows[r].style.breakInside = 'avoid';
+                        if ((r + 1) % 25 === 0 && r !== rows.length - 1) {
+                            rows[r].style.pageBreakAfter = 'always';
+                            rows[r].style.breakAfter = 'page';
                         }
-
-                        // بديل قطعي في حال عدم دعم canShare أو تعذر المشاركة في iOS: فتح في تبويب Safari مستقل
-                        var blobUrl = URL.createObjectURL(blob);
-                        var win = window.open(blobUrl, '_blank');
-                        if (!win) {
-                            location.href = blobUrl;
-                        }
-                        showToast('تم فتح ملف PDF في تبويب جديد (اضغط زر المشاركة ثم "حفظ في الملفات")', 'info');
-                        return;
                     }
-
-                    // 2. أنظمة أندرويد والكمبيوتر: تنزيل الملف تلقائياً عبر رابط التنزيل المباشر
-                    var url = URL.createObjectURL(blob);
-                    var a = document.createElement('a');
-                    a.href = url;
-                    a.download = defaultName;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    setTimeout(function() { URL.revokeObjectURL(url); }, 5000);
-                    showToast('✅ تم تنزيل ملف PDF بنجاح', 'success');
-                    return;
                 }
-            } catch (pdfErr) {
-                console.warn('html2pdf error:', pdfErr);
-            }
-
-            // Fallback في حال تعذر المكتبة
-            if (isIOSDevice()) {
-                showToast('تعذر تصدير PDF، يرجى المحاولة مرة أخرى', 'danger');
-            } else {
-                showToast('اختر "حفظ بتنسيق PDF" من نافذة الطباعة', 'info');
-                printCurrentPreview();
-            }
-        }
-
-        // دالة موحدة لطباعة التقارير: توليد PDF وقائمة المشاركة على iOS (AirPrint 100%)، والطباعة القياسية على PC/Android
-        async function printViaIOSShareOrPrint(targetElement, defaultName, orientation, fallbackHtml) {
-            if (isIOSDevice()) {
-                showToast('جاري تجهيز الكشف للطباعة عبر AirPrint...', 'info');
 
                 var opt = {
                     margin: [6, 6, 6, 6],
                     filename: defaultName,
-                    image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff' },
-                    jsPDF: { unit: 'mm', format: 'a4', orientation: orientation || 'landscape' }
+                    image: { type: 'jpeg', quality: 0.95 },
+                    html2canvas: { scale: 1.5, useCORS: true, logging: false, backgroundColor: '#ffffff' },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: orientation || 'landscape' },
+                    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
                 };
 
-                try {
-                    if (typeof html2pdf !== 'undefined' && targetElement) {
-                        var blob = await html2pdf().set(opt).from(targetElement).outputPdf('blob');
-                        var pdfFile = new File([blob], defaultName, { type: 'application/pdf' });
+                if (typeof html2pdf !== 'undefined') {
+                    var pdfBlob = await html2pdf().set(opt).from(clone).outputPdf('blob');
+                    var blobUrl = URL.createObjectURL(pdfBlob);
 
-                        var canShare = false;
-                        try {
-                            canShare = navigator.canShare && navigator.canShare({ files: [pdfFile] });
-                        } catch(e) {}
+                    // 1. فتح ملف الـ PDF في نافذة جديدة مباشرة
+                    window.open(blobUrl, '_blank');
 
-                        showToast('اختر (طباعة) من قائمة المشاركة بالأسفل للطباعة عبر AirPrint', 'info');
+                    // 2. تشغيل رابط التنزيل للأندرويد والكمبيوتر
+                    var a = document.createElement('a');
+                    a.href = blobUrl;
+                    a.download = defaultName;
+                    document.body.appendChild(a);
+                    a.click();
+                    setTimeout(function() {
+                        if (a.parentNode) a.parentNode.removeChild(a);
+                    }, 200);
 
-                        if (navigator.share && canShare) {
-                            try {
-                                await navigator.share({
-                                    files: [pdfFile],
-                                    title: defaultName
-                                });
-                                return;
-                            } catch (shErr) {
-                                if (shErr.name === 'AbortError') return;
-                            }
-                        }
-
-                        // بديل عند تعذر canShare: فتح ملف PDF في نافذة جديدة
-                        var blobUrl = URL.createObjectURL(blob);
-                        var win = window.open(blobUrl, '_blank');
-                        if (!win) location.href = blobUrl;
-                        showToast('تم فتح الكشف: اختر (طباعة / AirPrint) من قائمة المشاركة بالأسفل', 'info');
-                        return;
-                    }
-                } catch (err) {
-                    console.warn('iOS print via PDF error:', err);
+                    // 3. عرض تنبيه وزر مباشر للمستخدم لحفظ الملف على الآيفون
+                    showToast('✅ تم تجهيز ملف PDF بنجاح! للآيفون: اضغط مشاركة ثم (حفظ في الملفات)', 'success');
+                    showPdfDirectReadyModal(blobUrl, defaultName);
+                    return;
                 }
+            } catch (pdfErr) {
+                console.error('PDF generation error:', pdfErr);
+                showToast('حدث خطأ أثناء تصدير PDF، جاري التحويل للطباعة للحفظ كـ PDF', 'warning');
+                printCurrentPreview();
             }
+        }
 
-            // على أجهزة الكمبيوتر والأندرويد: استخدام أمر الطباعة المباشر
-            printViaIframeOrWindow(fallbackHtml);
+        // إشعار وزر مباشر لحفظ الـ PDF في تطبيق الملفات
+        function showPdfDirectReadyModal(url, filename) {
+            var existing = document.getElementById('pdf-ready-toast-card');
+            if (existing) existing.remove();
+
+            var card = document.createElement('div');
+            card.id = 'pdf-ready-toast-card';
+            card.style.cssText = 'position: fixed; bottom: calc(env(safe-area-inset-bottom, 0px) + 24px); left: 50%; transform: translateX(-50%); background: #0f172a; color: #fff; padding: 1rem 1.5rem; border-radius: 14px; box-shadow: 0 10px 25px rgba(0,0,0,0.4); z-index: 9999999; display: flex; align-items: center; gap: 12px; border: 1.5px solid #10b981; max-width: 92vw;';
+            card.innerHTML = '<i class="fas fa-file-pdf fa-2x" style="color: #ef4444;"></i>' +
+                '<div style="text-align: right; flex: 1;">' +
+                '<div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 2px;">تم تجهيز ملف PDF جاهز للحفظ</div>' +
+                '<div style="font-size: 0.8rem; color: #cbd5e1;">على الآيفون: اضغط الزر الأخضر ثم مشاركة &gt; حفظ في الملفات</div>' +
+                '</div>' +
+                '<a href="' + url + '" target="_blank" class="btn btn-success" style="font-size: 0.85rem; padding: 0.45rem 0.85rem; font-weight: 700; white-space: nowrap; text-decoration: none;">فتح / حفظ بالملفات</a>' +
+                '<button type="button" onclick="this.parentElement.remove()" style="background: none; border: none; color: #94a3b8; font-size: 1.25rem; cursor: pointer; padding: 0 4px;">&times;</button>';
+            document.body.appendChild(card);
+            setTimeout(function() {
+                if (card.parentNode) card.remove();
+            }, 25000);
         }
 
         async function savePreviewAsPDF() {
@@ -5959,16 +6361,48 @@
             }
         }
 
-        async function printArchiveCurrentPreview() {
+        function printArchiveCurrentPreview() {
             if (!currentArchivePreviewItem) return;
-            var defaultName = (currentArchivePreviewItem.title ? currentArchivePreviewItem.title.replace(/[\/:*?"<>|]/g, '_') : 'archive_report') + '.pdf';
-            var sheetEl = document.getElementById('archive-print-sheet');
+
+            // فتح نافذة الطباعة فوراً وبشكل متزامن داخل حدث النقر لمنع حظرها
+            var printWin = window.open('', '_blank');
+            if (!printWin) {
+                showToast('يرجى السماح بالنوافذ المنبثقة (Popups) لعرض شاشة الطباعة', 'warning');
+                return;
+            }
+
+            var defaultName = currentArchivePreviewItem.title || 'كشف_درجات_مؤرشف';
             var fullHtml = '<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>' +
-                (currentArchivePreviewItem.title || 'كشف_درجات_مؤرشف') +
-                '</title><style>@page { size: A4 ' + currentArchiveOrientation + '; margin: 8mm; } * { box-sizing: border-box; font-family: "Tajawal", Tahoma, sans-serif; } body { direction: rtl; padding: 6mm 8mm; background: #fff; color: #000; }</style></head><body>' +
+                defaultName +
+                '</title><style>' +
+                '@page { size: A4 ' + (currentArchiveOrientation || 'landscape') + '; margin: 8mm; } ' +
+                '* { box-sizing: border-box; margin: 0; padding: 0; font-family: "Tajawal", Tahoma, Arial, sans-serif; } ' +
+                'body { direction: rtl; padding: 6mm 8mm; background: #fff; color: #000; } ' +
+                'table.report-table { width: 100%; border-collapse: collapse; font-size: 11px; text-align: center; } ' +
+                'table.report-table th, table.report-table td { border: 1px solid #333; padding: 4px 2px; } ' +
+                'table.report-table th { background: #f1f5f9; font-weight: bold; -webkit-print-color-adjust: exact; print-color-adjust: exact; } ' +
+                '@media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }' +
+                '</style></head><body>' +
                 buildArchivedReportHTML(currentArchivePreviewItem, currentArchiveOrientation) +
                 '</body></html>';
-            await printViaIOSShareOrPrint(sheetEl, defaultName, currentArchiveOrientation || 'landscape', fullHtml);
+
+            try {
+                printWin.document.open();
+                printWin.document.write(fullHtml);
+                printWin.document.close();
+                printWin.focus();
+                setTimeout(function() {
+                    try {
+                        printWin.focus();
+                        printWin.print();
+                    } catch (e) {
+                        console.error('Archive print trigger error:', e);
+                    }
+                }, 400);
+            } catch (err) {
+                console.error('Archive print failed:', err);
+                showToast('تعذر فتح شاشة الطباعة، يرجى المحاولة مرة أخرى', 'danger');
+            }
         }
 
         async function saveArchivePreviewAsPDF() {
@@ -7075,5 +7509,30 @@
         }
     })();
     </script>
+
+    <!-- شريط التنقل السفلي الثابت للجوال (Mobile Bottom Nav - يظهر فقط على الجوال) -->
+    <nav id="mobile-bottom-nav" class="mobile-bottom-nav">
+        <button type="button" class="bottom-nav-item active" data-tab="dashboard" onclick="switchTab('dashboard', this)">
+            <i class="fas fa-chart-pie"></i>
+            <span>الرئيسية</span>
+        </button>
+        <button type="button" class="bottom-nav-item" data-tab="grades-entry" onclick="switchTab('grades-entry', this)">
+            <i class="fas fa-edit"></i>
+            <span>الدرجات</span>
+        </button>
+        <button type="button" class="bottom-nav-item" data-tab="students" onclick="switchTab('students', this)">
+            <i class="fas fa-users"></i>
+            <span>الطلاب</span>
+        </button>
+        <button type="button" class="bottom-nav-item" data-tab="archive" onclick="switchTab('archive', this)">
+            <i class="fas fa-archive"></i>
+            <span>الأرشيف</span>
+        </button>
+        <button type="button" class="bottom-nav-item" onclick="toggleMobileSidebar()">
+            <i class="fas fa-bars"></i>
+            <span>المزيد</span>
+        </button>
+    </nav>
+
 </body>
 </html>
