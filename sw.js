@@ -2,21 +2,19 @@
  * Service Worker - سجل الدرجات الذكي (PWA Offline Cache)
  */
 
-const CACHE_NAME = 'aldragat-pwa-v13';
+const CACHE_NAME = 'aldragat-pwa-v14';
 
 const STATIC_ASSETS = [
-  'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
   './',
   './index.html',
   './license-guard.js',
   './icon.png',
   './icon.ico',
-  './manifest.json'
+  './manifest.json',
+  './xlsx.full.min.js'
 ];
 
-// 1. التثبيت والتخزين المسبق للملفات
+// 1. التثبيت والتخزين المسبق للملفات المحلية
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
@@ -50,12 +48,18 @@ self.addEventListener('message', (event) => {
   }
 });
 
-// 3. استراتيجية Cache First للعمل الأوفلاين الكامل
+// 3. إدارة الطلبات: تمرير الروابط الخارجية للشبكة مباشرة دون كاش (NetworkOnly)
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   
-  // تجاهل الطلبات غير القابلة للتخزين (مثل دوال غير GET)
   if (req.method !== 'GET') return;
+
+  const url = new URL(req.url);
+
+  // استثناء خادم الواتساب السحابي ومكتبات cdnjs تماماً ليمروا للشبكة مباشرة (NetworkOnly)
+  if (url.hostname.includes('onrender.com') || url.hostname.includes('cdnjs.cloudflare.com')) {
+    return; // تمرير مباشر للشبكة دون اعتراض من الكاش
+  }
 
   event.respondWith(
     caches.match(req).then((cachedResponse) => {
@@ -63,16 +67,8 @@ self.addEventListener('fetch', (event) => {
         return cachedResponse;
       }
 
-      // إذا لم يكن في الكاش، اطلبه من الشبكة ثم خزنه للمستقبل (خطوط، أيقونات... إلخ)
       return fetch(req).then((networkResponse) => {
         if (!networkResponse || networkResponse.status !== 200 || networkResponse.type === 'opaque') {
-          // في حال الموارد عبر النطاقات (CORS opaque كالخطوط)، نخزنها أيضاً
-          if (networkResponse && (networkResponse.type === 'opaque' || networkResponse.status === 200)) {
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(req, responseToCache);
-            });
-          }
           return networkResponse;
         }
 
@@ -83,7 +79,6 @@ self.addEventListener('fetch', (event) => {
 
         return networkResponse;
       }).catch(() => {
-        // إذا كان الجهاز غير متصل وفشل الطلب وكان التنقل لصفحة HTML، أعد الصفحة الرئيسية
         if (req.headers.get('accept') && req.headers.get('accept').includes('text/html')) {
           return caches.match('./index.html');
         }
