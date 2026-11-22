@@ -583,56 +583,6 @@
               </button>
             </div>
 
-            <!-- بطاقة بيانات التحويل البنكي - مصرف الراجحي -->
-            <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #ffffff; border-radius: 14px; padding: 14px 16px; box-shadow: 0 8px 20px rgba(15, 23, 42, 0.35); border: 1px solid #334155; text-align: right;">
-              <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255, 255, 255, 0.15); padding-bottom: 8px; margin-bottom: 10px;">
-                <div style="display: flex; align-items: center; gap: 6px; font-weight: 800; font-size: 12px; color: #38bdf8;">
-                  <i class="fas fa-university" style="font-size: 14px;"></i>
-                  <span>بيانات التحويل البنكي - مصرف الراجحي (Al Rajhi Bank)</span>
-                </div>
-                <span style="font-size: 10px; background: rgba(56, 189, 248, 0.2); color: #7dd3fc; padding: 2px 8px; border-radius: 6px; font-weight: 700;">حساب معتمد</span>
-              </div>
-
-              <!-- رقم الحساب -->
-              <div style="margin-bottom: 8px; background: rgba(255, 255, 255, 0.06); padding: 8px 12px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
-                <div>
-                  <div style="font-size: 10px; color: #94a3b8; font-weight: 600;">رقم الحساب (Account Number):</div>
-                  <div style="font-family: monospace; font-size: 14px; font-weight: 800; letter-spacing: 1px; color: #ffffff;">372000010006080092153</div>
-                </div>
-                <button type="button" 
-                        onclick="window.LicenseGuard.copyBankValue('372000010006080092153', this, 'نسخ الحساب')"
-                        style="background: rgba(255, 255, 255, 0.12); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.25); font-size: 11px; font-weight: 700; padding: 5px 10px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
-                  <span>📋</span> <span>نسخ الحساب</span>
-                </button>
-              </div>
-
-              <!-- رقم الآيبان IBAN -->
-              <div style="margin-bottom: 8px; background: rgba(255, 255, 255, 0.06); padding: 8px 12px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
-                <div>
-                  <div style="font-size: 10px; color: #94a3b8; font-weight: 600;">رقم الآيبان (IBAN):</div>
-                  <div style="font-family: monospace; font-size: 12px; font-weight: 800; letter-spacing: 0.5px; color: #ffffff;">SA3780000372608010092153</div>
-                </div>
-                <button type="button" 
-                        onclick="window.LicenseGuard.copyBankValue('SA3780000372608010092153', this, 'نسخ الآيبان')"
-                        style="background: rgba(255, 255, 255, 0.12); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.25); font-size: 11px; font-weight: 700; padding: 5px 10px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
-                  <span>📋</span> <span>نسخ الآيبان</span>
-                </button>
-              </div>
-
-              <!-- اسم المستفيد -->
-              <div style="background: rgba(255, 255, 255, 0.06); padding: 8px 12px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
-                <div>
-                  <div style="font-size: 10px; color: #94a3b8; font-weight: 600;">اسم المستفيد (Beneficiary):</div>
-                  <div style="font-size: 12px; font-weight: 800; color: #ffffff;">سليمان علي الثواب (Sulaiman Althawwab)</div>
-                </div>
-                <button type="button" 
-                        onclick="window.LicenseGuard.copyBankValue('سليمان علي الثواب', this, 'نسخ الاسم')"
-                        style="background: rgba(255, 255, 255, 0.12); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.25); font-size: 11px; font-weight: 700; padding: 5px 10px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
-                  <span>📋</span> <span>نسخ الاسم</span>
-                </button>
-              </div>
-            </div>
-
             <!-- بطاقة معرف الجهاز الفريد -->
             <div style="background: #f8fafc; border: 1.5px dashed #0f766e; border-radius: 12px; padding: 12px 14px; text-align: center;">
               <div style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 4px;">
