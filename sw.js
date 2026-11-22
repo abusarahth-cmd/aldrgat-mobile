@@ -2,7 +2,7 @@
  * Service Worker - سجل الدرجات الذكي (PWA Offline Cache)
  */
 
-const CACHE_NAME = 'aldragat-pwa-v8';
+const CACHE_NAME = 'aldragat-pwa-v9';
 
 const STATIC_ASSETS = [
   'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js',
@@ -18,11 +18,10 @@ const STATIC_ASSETS = [
 
 // 1. التثبيت والتخزين المسبق للملفات
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(STATIC_ASSETS);
-    }).then(() => {
-      return self.skipWaiting();
     })
   );
 });
@@ -42,6 +41,13 @@ self.addEventListener('activate', (event) => {
       return self.clients.claim();
     })
   );
+});
+
+// استقبال رسائل التحديث الفوري
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // 3. استراتيجية Cache First للعمل الأوفلاين الكامل
