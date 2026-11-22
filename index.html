@@ -5889,7 +5889,7 @@
         }
 
         // الدالة الموحدة والمضمونة 100% لطباعة الكشف وحفظه كـ PDF على جميع الأجهزة
-        function exportReportPDF(isPrintMode, btnEl) {
+        async function exportReportPDF(isPrintMode, btnEl) {
             // العثور على الكشف المعروض حالياً (سواء معاينة عادية أو أرشيف)
             var sourceSheet = document.getElementById('preview-sheet');
             var isArchive = false;
@@ -5919,18 +5919,52 @@
 
             var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-            // على الآيفون والآيباد: مشاركة ملف HTML نظيف عبر قائمة المشاركة الأصلية لنظام iOS
+            // على الآيفون والآيباد: تحويل الكشف إلى ملف PDF حقيقي ومشاركته عبر قائمة الآيفون الأصلية
             if (isIOS) {
-                const reportEl = document.getElementById('printArea') || document.querySelector('.print-content') || (document.querySelector('table') ? document.querySelector('table').parentElement : null);
-                const contentInner = reportEl ? reportEl.innerHTML : reportHtml;
-                const cleanHtml = `<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>كشف الدرجات</title><style>body{font-family:Arial,sans-serif;direction:rtl;padding:15px;} table{width:100%;border-collapse:collapse;font-size:12px;} th,td{border:1px solid #000;padding:5px;text-align:center;} th{background:#eee;}</style></head><body>${contentInner}</body></html>`;
-                const file = new File([cleanHtml], 'كشف_الدرجات.html', { type: 'text/html' });
-                if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    navigator.share({ files: [file], title: 'كشف الدرجات' }).catch(function(err) {
-                        if (err && err.name !== 'AbortError') window.print();
-                    });
-                } else {
-                    window.print();
+                showToast('جاري تجهيز ملف PDF للطباعة والمشاركة بالآيفون...', 'info');
+                try {
+                    await ensureHtml2PdfLoaded();
+                    const reportEl = document.getElementById('printArea') || document.querySelector('.print-content') || (document.querySelector('table') ? document.querySelector('table').parentElement : null) || sourceSheet;
+                    
+                    var origDisplay = reportEl ? reportEl.style.display : '';
+                    var origPos = reportEl ? reportEl.style.position : '';
+                    var origLeft = reportEl ? reportEl.style.left : '';
+                    if (reportEl && (reportEl.style.display === 'none' || getComputedStyle(reportEl).display === 'none')) {
+                        reportEl.style.position = 'fixed';
+                        reportEl.style.left = '-9999px';
+                        reportEl.style.top = '0';
+                        reportEl.style.width = '794px';
+                        reportEl.style.background = '#ffffff';
+                        reportEl.style.display = 'block';
+                    }
+
+                    const opt = {
+                        margin: 10,
+                        filename: 'كشف_الدرجات.pdf',
+                        image: { type: 'jpeg', quality: 0.98 },
+                        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+                        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                    };
+
+                    const pdfBlob = await html2pdf().set(opt).from(reportEl).outputPdf('blob');
+
+                    if (reportEl) {
+                        reportEl.style.display = origDisplay;
+                        reportEl.style.position = origPos;
+                        reportEl.style.left = origLeft;
+                    }
+
+                    const pdfFile = new File([pdfBlob], 'كشف_الدرجات.pdf', { type: 'application/pdf' });
+                    if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+                        await navigator.share({ files: [pdfFile], title: 'كشف الدرجات' });
+                    } else {
+                        window.print();
+                    }
+                } catch (err) {
+                    console.warn('iOS PDF generation/share error:', err);
+                    if (err && err.name !== 'AbortError') {
+                        window.print();
+                    }
                 }
                 return;
             }

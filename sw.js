@@ -2,7 +2,7 @@
  * Service Worker - سجل الدرجات الذكي (PWA Offline Cache)
  */
 
-const CACHE_NAME = 'grades-v7';
+const CACHE_NAME = 'grades-v7.1';
 
 const STATIC_ASSETS = [
   './',
@@ -51,7 +51,7 @@ self.addEventListener('message', (event) => {
 // 3. إدارة الطلبات: تمرير الروابط الخارجية للشبكة مباشرة دون كاش (NetworkOnly)
 self.addEventListener('fetch', (event) => {
   const req = event.request;
-  
+
   if (req.method !== 'GET') return;
 
   const url = new URL(req.url);
