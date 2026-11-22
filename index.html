@@ -2997,247 +2997,196 @@
         }
 
         // =========================================================================
-        // ربط واتساب السحابي وعزل الجلسات لكل مستخدم (Multi-tenant Cloud Server: https://wa-cloud-c5po.onrender.com)
+        // ربط واتساب السحابي الرسمي الحصري (https://wa-cloud-c5po.onrender.com/qr?id=grades_...)
         // =========================================================================
-        var DEFAULT_WA_CLOUD_SERVER = 'https://wa-cloud-c5po.onrender.com';
-        var waQrPollInterval = null;
-        var waWakeupRetryCount = 0;
+        var WA_CLOUD_BASE = 'https://wa-cloud-c5po.onrender.com';
+        var waCloudPollingTimer = null;
+        var waCloudPollingAttempts = 0;
 
-        // دالة توليد وتثبيت معرف جلسة فريد لكل مستخدم/مدرسة لمنع تداخل الجلسات
-        function getWhatsAppSessionId() {
-            var raw = '';
+        // دالة توليد معرّف مستخدم نقي بأحرف وأرقام إنجليزية فقط
+        function getCleanUserAlphanumericId() {
+            var rawId = '';
             try {
                 if (window.LicenseGuard && typeof window.LicenseGuard.getDeviceId === 'function') {
-                    raw = window.LicenseGuard.getDeviceId();
+                    rawId = window.LicenseGuard.getDeviceId();
                 }
             } catch(e) {}
 
-            if (!raw) {
-                try { raw = localStorage.getItem('pwa_device_id') || localStorage.getItem('aldragat_device_id'); } catch(e) {}
+            if (!rawId) {
+                try { rawId = localStorage.getItem('pwa_device_id') || localStorage.getItem('aldragat_device_id'); } catch(e) {}
             }
 
-            if (!raw && appData && appData.settings) {
-                raw = appData.settings.schoolName || appData.settings.teacherName || '';
+            if (!rawId && typeof appData !== 'undefined' && appData && appData.settings) {
+                rawId = appData.settings.teacherName || appData.settings.schoolName || '';
             }
 
-            // تنظيف المعرف ليحتوي على أحرف إنجليزية وأرقام فقط
-            var clean = String(raw).replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-            if (!clean || clean.length < 3) clean = 'user_' + Math.abs(hashCode(navigator.userAgent || 'sch'));
-            return 'grades_' + clean;
+            var clean = String(rawId || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+            if (!clean || clean.length < 3) clean = 'user' + Math.abs(hashCode(navigator.userAgent || 'aldragat'));
+            return clean;
         }
 
-        function getWhatsAppServerUrl() {
-            var input = document.getElementById('wa-server-url-input');
-            var val = input ? input.value.trim() : '';
-            if (val && !val.includes('localhost:3000')) return val.replace(/\/+$/, '');
-            if (appData.settings && appData.settings.whatsappServerUrl && !appData.settings.whatsappServerUrl.includes('localhost:3000')) {
-                return appData.settings.whatsappServerUrl.replace(/\/+$/, '');
-            }
-            return DEFAULT_WA_CLOUD_SERVER;
+        function getWhatsAppFullSessionId() {
+            return 'grades_' + getCleanUserAlphanumericId();
         }
 
-        // بناء روابط الـ API مع تمرير معرف الجلسة ?id=... لعزل الجلسات السحابية
-        function buildWhatsAppApiUrl(path) {
-            var base = getWhatsAppServerUrl();
-            var sid = getWhatsAppSessionId();
-            var sep = path.includes('?') ? '&' : '?';
-            return base + path + sep + 'id=' + encodeURIComponent(sid);
+        function getWhatsAppCloudQrUrl() {
+            return WA_CLOUD_BASE + '/qr?id=' + getWhatsAppFullSessionId();
+        }
+
+        function getWhatsAppCloudBulkSendUrl() {
+            return WA_CLOUD_BASE + '/send-bulk?id=' + getWhatsAppFullSessionId();
         }
 
         async function connectWhatsAppServer(showUserToast) {
-            var serverUrl = getWhatsAppServerUrl();
-            var sid = getWhatsAppSessionId();
-            if (!appData.settings) appData.settings = {};
-            appData.settings.whatsappServerUrl = serverUrl;
-            await saveData();
-
-            var input = document.getElementById('wa-server-url-input');
-            if (input) input.value = serverUrl;
-
             var statusInfo = document.getElementById('wa-server-status-info');
             var spinner = document.getElementById('wa-qr-loading-spinner');
             var canvasWrapper = document.getElementById('wa-qr-canvas-wrapper');
             var qrTarget = document.getElementById('wa-real-qr-canvas');
 
+            if (waCloudPollingTimer) {
+                clearInterval(waCloudPollingTimer);
+                waCloudPollingTimer = null;
+            }
+
+            var fullQrUrl = getWhatsAppCloudQrUrl();
+            var fullSessionId = getWhatsAppFullSessionId();
+
             if (spinner) {
                 spinner.style.display = 'block';
                 spinner.innerHTML = '<i class="fas fa-spinner fa-spin fa-2x" style="color: #0f766e;"></i>' +
-                    '<p style="margin-top: 0.75rem; font-size: 0.92rem; color: #047857; font-weight: 700;">' +
-                    'جاري إيقاظ الخادم السحابي وتوليد الباركود (قد يستغرق 20-40 ثانية في أول مرة)...' +
+                    '<p style="margin-top: 0.75rem; font-size: 0.95rem; color: #047857; font-weight: 700;">' +
+                    'جاري الاتصال بخادم الواتساب السحابي (قد يستغرق 30 ثانية)...' +
                     '</p>' +
-                    '<small style="color: #64748b;">جلسة المعلم: <code>' + sid + '</code></small>';
+                    '<small style="color: #64748b;">معرّف الجلسة: <code>' + fullSessionId + '</code></small>';
             }
             if (canvasWrapper) canvasWrapper.style.display = 'none';
-            if (statusInfo) statusInfo.innerHTML = '<span style="color: #0284c7; font-weight: 700;"><i class="fas fa-spinner fa-spin"></i> جاري إيقاظ الخادم السحابي وتوليد الباركود (قد يستغرق 20-40 ثانية في أول مرة)...</span>';
+            if (statusInfo) {
+                statusInfo.innerHTML = '<span style="color: #0284c7; font-weight: 700;"><i class="fas fa-spinner fa-spin"></i> جاري الاتصال بخادم الواتساب السحابي (قد يستغرق 30 ثانية)...</span>';
+            }
 
-            if (showUserToast) showToast('جاري إيقاظ الخادم السحابي وجلب رمز QR...', 'info');
+            if (showUserToast) showToast('جاري الاتصال بخادم الواتساب السحابي...', 'info');
 
-            // محاولة جلب الباركود مع إعادة المحاولة التلقائية كل 3 ثوانٍ حتى يستيقظ الخادم السحابي (Render)
-            if (waQrPollInterval) clearInterval(waQrPollInterval);
-            waWakeupRetryCount = 0;
+            waCloudPollingAttempts = 0;
+            var maxAttempts = 20; // 20 محاولة كل 3 ثوانٍ = 60 ثانية
 
-            var attemptFetch = async function() {
-                waWakeupRetryCount++;
+            var checkCloudQr = async function() {
+                waCloudPollingAttempts++;
                 try {
-                    // 1. فحص هل الجلسة متصلة بالفعل؟
-                    var statusUrl = buildWhatsAppApiUrl('/status');
-                    var statusResp = await fetch(statusUrl, { method: 'GET', signal: AbortSignal.timeout(7000) }).catch(function() { return null; });
-                    if (statusResp && statusResp.ok) {
-                        var sData = await statusResp.json();
-                        if (sData && sData.connected) {
-                            if (waQrPollInterval) clearInterval(waQrPollInterval);
-                            setWhatsAppConnectedUI(true, serverUrl);
-                            if (statusInfo) statusInfo.innerHTML = '<span style="color: #16a34a; font-weight: 700;">✅ متصل بنجاح! جلسة الواتساب نشطة وجاهزة للإرسال.</span>';
-                            if (showUserToast) showToast('✅ تم الاتصال: واتساب متصل بالفعل!', 'success');
+                    var resp = await fetch(fullQrUrl, { method: 'GET', signal: AbortSignal.timeout(8000) });
+                    if (resp && resp.ok) {
+                        var data = await resp.json();
+
+                        // 1. إذا كانت الجلسة مرتبطة وجاهزة بالفعل
+                        if (data && (data.ready === true || data.connected === true)) {
+                            if (waCloudPollingTimer) { clearInterval(waCloudPollingTimer); waCloudPollingTimer = null; }
+                            setWhatsAppConnectedUI(true, WA_CLOUD_BASE);
+                            if (statusInfo) statusInfo.innerHTML = '<span style="color: #16a34a; font-weight: 700;">✅ متصل بنجاح! جلسة الواتساب نشطة وجاهزة للإرسال الآلي.</span>';
+                            showToast('✅ واتساب متصل بالفعل!', 'success');
                             return true;
                         }
-                    }
 
-                    // 2. جلب رمز الـ QR من مسار /qr مع تمرير ?id=...
-                    var qrUrl = buildWhatsAppApiUrl('/qr');
-                    var qrResp = await fetch(qrUrl, { method: 'GET', signal: AbortSignal.timeout(8000) }).catch(function() { return null; });
+                        // 2. إذا وصل رمز QR الفعلي الحقيقي من الخادم
+                        if (data && data.qr) {
+                            if (spinner) spinner.style.display = 'none';
+                            if (canvasWrapper) canvasWrapper.style.display = 'flex';
+                            qrTarget.innerHTML = '';
 
-                    if (qrResp && qrResp.ok) {
-                        var contentType = qrResp.headers.get('content-type') || '';
-                        if (spinner) spinner.style.display = 'none';
-                        if (canvasWrapper) canvasWrapper.style.display = 'flex';
-
-                        if (contentType.includes('image')) {
-                            var blob = await qrResp.blob();
-                            var imgUrl = URL.createObjectURL(blob);
-                            qrTarget.innerHTML = '<img src="' + imgUrl + '" style="width: 220px; height: 220px; border-radius: 8px;" alt="WhatsApp QR">';
-                        } else {
-                            var textOrJson = await qrResp.text();
-                            var qrString = '';
-                            try {
-                                var parsed = JSON.parse(textOrJson);
-                                if (parsed.connected) {
-                                    if (waQrPollInterval) clearInterval(waQrPollInterval);
-                                    setWhatsAppConnectedUI(true, serverUrl);
-                                    return true;
-                                }
-                                if (parsed.qrImage) {
-                                    qrTarget.innerHTML = '<img src="' + parsed.qrImage + '" style="width: 220px; height: 220px; border-radius: 8px;" alt="WhatsApp QR">';
-                                    qrString = null;
-                                } else {
-                                    qrString = parsed.qr || parsed.code || textOrJson;
-                                }
-                            } catch (e) {
-                                qrString = textOrJson.trim();
+                            if (typeof QRCode !== 'undefined') {
+                                new QRCode(qrTarget, {
+                                    text: data.qr,
+                                    width: 220,
+                                    height: 220,
+                                    colorDark: '#0f172a',
+                                    colorLight: '#ffffff',
+                                    correctLevel: QRCode.CorrectLevel.M
+                                });
+                            } else {
+                                qrTarget.innerHTML = '<p style="color: #dc2626; font-weight: bold;">تعذر تحميل مكتبة QRCode</p>';
                             }
 
-                            if (qrString) {
-                                qrTarget.innerHTML = '';
-                                if (typeof QRCode !== 'undefined') {
-                                    new QRCode(qrTarget, {
-                                        text: qrString,
-                                        width: 220,
-                                        height: 220,
-                                        colorDark: '#0f172a',
-                                        colorLight: '#ffffff',
-                                        correctLevel: QRCode.CorrectLevel.M
-                                    });
-                                }
-                            }
+                            setWhatsAppConnectedUI(false, WA_CLOUD_BASE, 'بانتظار مسح الرمز من واتساب الهاتف');
+                            if (statusInfo) statusInfo.innerHTML = '<span style="color: #059669; font-weight: 700;">✅ تم جلب رمز QR الفعلي بنجاح! امسحه الآن من واتساب (الأجهزة المرتبطة).</span>';
+                            if (showUserToast && waCloudPollingAttempts === 1) showToast('تم جلب رمز QR الفعلي بنجاح', 'success');
+
+                            // بعد عرض الباركود الحقيقي، الاستمرار بالاستطلاع حتى يصبح data.ready === true
+                            return false;
                         }
 
-                        setWhatsAppConnectedUI(false, serverUrl, 'بانتظار مسح الرمز من واتساب الهاتف');
-                        if (statusInfo) statusInfo.innerHTML = '<span style="color: #059669; font-weight: 700;">✅ الخادم نشط وتم توليد الباركود! امسحه الآن من واتساب (الأجهزة المرتبطة).</span>';
-                        if (showUserToast) showToast('تم توليد باركود الربط، امسحه الآن من هاتفك', 'info');
-
-                        // بدء استطلاع إتمام المسح بنجاح
-                        startWhatsAppStatusPolling(serverUrl);
-                        return true;
+                        // 3. إذا أرجع الخادم خطأ صريحاً
+                        if (data && data.error) {
+                            throw new Error(data.error);
+                        }
+                    } else {
+                        throw new Error('استجابة غير صالحة من الخادم (' + resp.status + ')');
                     }
-                } catch (err) {
-                    console.warn('Wakeup attempt error:', err);
+                } catch(err) {
+                    console.warn('Poll attempt ' + waCloudPollingAttempts + ' failed:', err.message);
+                    if (waCloudPollingAttempts >= maxAttempts) {
+                        if (spinner) spinner.style.display = 'none';
+                        if (canvasWrapper) canvasWrapper.style.display = 'flex';
+                        qrTarget.innerHTML = '<div style="color: #dc2626; padding: 1.5rem; text-align: center;"><i class="fas fa-exclamation-triangle fa-2x"></i><p style="margin-top: 0.5rem; font-weight: 700;">تعذر الاتصال بالخادم: ' + (err.message || 'انتهت مهلة 60 ثانية') + '</p><p style="font-size: 0.82rem; color: #64748b;">يرجى إعادة الضغط على الزر للمحاولة مجدداً.</p></div>';
+                        if (statusInfo) statusInfo.innerHTML = '<span style="color: #dc2626; font-weight: 700;">⚠️ خطأ في الاتصال: ' + (err.message || 'لم يستجب الخادم') + '</span>';
+                        showToast('تعذر الاتصال بالخادم السحابي', 'danger');
+                    }
                 }
                 return false;
             };
 
-            // تشغيل المحاولة الأولى فوراً
-            var ok = await attemptFetch();
-            if (ok) return;
+            // تشغيل أول محاولة فوراً
+            var finished = await checkCloudQr();
+            if (finished) return;
 
-            // استمرار إعادة المحاولة كل 3 ثوانٍ حتى يستيقظ الخادم (حتى 20 محاولة = 60 ثانية)
-            waQrPollInterval = setInterval(async function() {
-                if (waWakeupRetryCount >= 20) {
-                    clearInterval(waQrPollInterval);
-                    if (spinner) spinner.style.display = 'none';
-                    if (canvasWrapper) canvasWrapper.style.display = 'flex';
-                    qrTarget.innerHTML = '<div style="color: #dc2626; padding: 1.5rem;"><i class="fas fa-exclamation-triangle fa-2x"></i><p style="margin-top: 0.5rem; font-weight: 700;">استغرق الخادم وقتاً أطول من المتوقع للاستيقاظ</p><p style="font-size: 0.82rem; color: #64748b;">يرجى إعادة الضغط على "ربط واتساب (جلب QR)" للمحاولة مجدداً.</p></div>';
-                    if (statusInfo) statusInfo.innerHTML = '<span style="color: #dc2626; font-weight: 700;">⚠️ تعذر استجابة الخادم في الوقت المحدد. يرجى المحاولة مرة أخرى.</span>';
+            // التكرار التلقائي كل 3 ثوانٍ لمدة 60 ثانية
+            waCloudPollingTimer = setInterval(async function() {
+                if (waCloudPollingAttempts >= maxAttempts) {
+                    clearInterval(waCloudPollingTimer);
+                    waCloudPollingTimer = null;
                     return;
                 }
-
-                if (statusInfo) statusInfo.innerHTML = '<span style="color: #0284c7; font-weight: 700;"><i class="fas fa-spinner fa-spin"></i> جاري إيقاظ الخادم السحابي وتوليد الباركود (محاولة ' + waWakeupRetryCount + ' من 20)...</span>';
-
-                var success = await attemptFetch();
-                if (success) {
-                    clearInterval(waQrPollInterval);
+                if (statusInfo && spinner && spinner.style.display !== 'none') {
+                    statusInfo.innerHTML = '<span style="color: #0284c7; font-weight: 700;"><i class="fas fa-spinner fa-spin"></i> جاري الاتصال بخادم الواتساب السحابي (محاولة ' + waCloudPollingAttempts + ' من ' + maxAttempts + ')...</span>';
                 }
-            }, 3000);
-        }
-
-        function startWhatsAppStatusPolling(serverUrl) {
-            if (waQrPollInterval) clearInterval(waQrPollInterval);
-            var attempts = 0;
-            waQrPollInterval = setInterval(async function() {
-                attempts++;
-                if (attempts > 35) { // توقف بعد 105 ثوانٍ
-                    clearInterval(waQrPollInterval);
-                    return;
+                var ok = await checkCloudQr();
+                if (ok) {
+                    clearInterval(waCloudPollingTimer);
+                    waCloudPollingTimer = null;
                 }
-                try {
-                    var statusUrl = buildWhatsAppApiUrl('/status');
-                    var resp = await fetch(statusUrl, { method: 'GET' }).catch(function() { return null; });
-                    if (resp && resp.ok) {
-                        var data = await resp.json();
-                        if (data && data.connected) {
-                            clearInterval(waQrPollInterval);
-                            setWhatsAppConnectedUI(true, serverUrl);
-                            showToast('🎉 تم ربط واتساب بنجاح وجلسة الإرسال نشطة!', 'success');
-                        }
-                    }
-                } catch(e) {}
             }, 3000);
         }
 
         async function checkWhatsAppServerStatus(showUserToast) {
-            var serverUrl = getWhatsAppServerUrl();
+            var fullQrUrl = getWhatsAppCloudQrUrl();
             var statusInfo = document.getElementById('wa-server-status-info');
-            if (statusInfo) statusInfo.innerHTML = '<span style="color: #0284c7;"><i class="fas fa-spinner fa-spin"></i> جاري فحص الاتصال بالخادم...</span>';
+            if (statusInfo) statusInfo.innerHTML = '<span style="color: #0284c7;"><i class="fas fa-spinner fa-spin"></i> جاري فحص حالة الاتصال بالخادم...</span>';
 
             try {
-                var statusUrl = buildWhatsAppApiUrl('/status');
-                var resp = await fetch(statusUrl, { method: 'GET', signal: AbortSignal.timeout(8000) }).catch(function() { return null; });
+                var resp = await fetch(fullQrUrl, { method: 'GET', signal: AbortSignal.timeout(8000) });
                 if (resp && resp.ok) {
                     var data = await resp.json();
-                    if (data && data.connected) {
-                        setWhatsAppConnectedUI(true, serverUrl);
-                        if (statusInfo) statusInfo.innerHTML = '<span style="color: #16a34a; font-weight: 700;">✅ متصل وجاهز للإرسال الآلي من رقمك المرتبط! (معرف الجلسة: ' + getWhatsAppSessionId() + ')</span>';
+                    if (data && (data.ready === true || data.connected === true)) {
+                        setWhatsAppConnectedUI(true, WA_CLOUD_BASE);
+                        if (statusInfo) statusInfo.innerHTML = '<span style="color: #16a34a; font-weight: 700;">✅ متصل وجاهز للإرسال الآلي! (معرف الجلسة: ' + getWhatsAppFullSessionId() + ')</span>';
                         if (showUserToast) showToast('✅ خادم الواتساب متصل بنجاح!', 'success');
                         return;
                     }
                 }
-                setWhatsAppConnectedUI(false, serverUrl, 'الخادم يعمل، ولكن غير مرتبط بواتساب');
-                if (statusInfo) statusInfo.innerHTML = '<span style="color: #f59e0b; font-weight: 700;">⚠️ الخادم السحابي يستجيب، اضغط "ربط واتساب" لمسح رمز QR.</span>';
+                setWhatsAppConnectedUI(false, WA_CLOUD_BASE, 'الخادم يعمل، ولكن غير مرتبط بواتساب');
+                if (statusInfo) statusInfo.innerHTML = '<span style="color: #f59e0b; font-weight: 700;">⚠️ الخادم السحابي نشط، اضغط "ربط واتساب" لجلب رمز QR ومسحه.</span>';
                 if (showUserToast) showToast('الخادم يعمل ولكن غير مرتبط بواتساب', 'warning');
             } catch (e) {
-                setWhatsAppConnectedUI(false, serverUrl, 'تعذر الاتصال بالخادم');
-                if (statusInfo) statusInfo.innerHTML = '<span style="color: #dc2626; font-weight: 700;">❌ تعذر الوصول للخادم: ' + serverUrl + '</span>';
-                if (showUserToast) showToast('تعذر الاتصال بالخادم', 'danger');
+                setWhatsAppConnectedUI(false, WA_CLOUD_BASE, 'تعذر الاتصال بالخادم');
+                if (statusInfo) statusInfo.innerHTML = '<span style="color: #dc2626; font-weight: 700;">❌ تعذر الوصول للخادم: ' + e.message + '</span>';
+                if (showUserToast) showToast('تعذر الاتصال بالخادم السحابي', 'danger');
             }
         }
 
         async function logoutWhatsAppServer() {
-            var serverUrl = getWhatsAppServerUrl();
-            if (waQrPollInterval) clearInterval(waQrPollInterval);
+            if (waCloudPollingTimer) { clearInterval(waCloudPollingTimer); waCloudPollingTimer = null; }
             try {
-                var logoutUrl = buildWhatsAppApiUrl('/logout');
+                var logoutUrl = WA_CLOUD_BASE + '/logout?id=' + getWhatsAppFullSessionId();
                 await fetch(logoutUrl, { method: 'POST' }).catch(function() { return null; });
             } catch(e) {}
-            setWhatsAppConnectedUI(false, serverUrl, 'تم تسجيل الخروج');
+            setWhatsAppConnectedUI(false, WA_CLOUD_BASE, 'تم تسجيل الخروج');
             showToast('تم تسجيل الخروج وفصل جلسة الواتساب', 'info');
         }
 
@@ -3259,7 +3208,7 @@
                     indBadge.textContent = 'متصل (الأجهزة المرتبطة)';
                 }
                 if (qrTarget) {
-                    qrTarget.innerHTML = '<div style="color: #16a34a; padding: 2rem 1rem;"><i class="fas fa-check-circle fa-4x" style="color: #22c55e; margin-bottom: 1rem;"></i><h4 style="font-weight: 800; color: #15803d; margin-bottom: 0.5rem;">واتساب متصل بنجاح!</h4><p style="font-size: 0.88rem; color: #166534;">جلسة الخادم السحابي نشطة ومعزولة لحسابك. يمكنك إرسال التقارير لجميع الطلاب مباشرة.</p></div>';
+                    qrTarget.innerHTML = '<div style="color: #16a34a; padding: 2rem 1rem;"><i class="fas fa-check-circle fa-4x" style="color: #22c55e; margin-bottom: 1rem;"></i><h4 style="font-weight: 800; color: #15803d; margin-bottom: 0.5rem;">واتساب متصل بنجاح!</h4><p style="font-size: 0.88rem; color: #166534;">جلسة الخادم السحابي نشطة ومعزولة لحسابك. يمكنك إرسال تقارير الطلاب مباشرة.</p></div>';
                 }
             } else {
                 if (badge) {
@@ -3323,7 +3272,7 @@
                 if (panelDirect) panelDirect.style.display = 'none';
                 if (panelServer) panelServer.style.display = 'block';
 
-                generateInstantQR('https://web.whatsapp.com', 'امسح الرمز بكاميرا الجوال الآخر لفتح واتساب ويب');
+                
                 updateServerModeUI();
             }
         }
@@ -5835,29 +5784,83 @@
             var content = buildReportHTML(mode);
             var title = getReportDefaultFileName('', mode);
 
-            var topBarHtml = '<div class="print-preview-topbar" style="position: sticky; top: 0; z-index: 999999; background: #0f172a; color: #ffffff; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.4); font-family: \'Tajawal\', Tahoma, Arial, sans-serif; direction: rtl; gap: 12px; flex-wrap: wrap;">' +
+            var topBarHtml = '<div class="print-preview-topbar" style="position: sticky; top: 0; z-index: 999999; background: #0f172a; color: #ffffff; padding-top: calc(env(safe-area-inset-top, 0px) + 3rem) !important; padding-bottom: 0.85rem !important; padding-left: 1.25rem !important; padding-right: 1.25rem !important; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.45); font-family: \'Tajawal\', Tahoma, Arial, sans-serif; direction: rtl; gap: 12px; flex-wrap: wrap;">' +
                 '<div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">' +
-                '<button type="button" onclick="window.print()" style="background: #16a34a; color: #ffffff; border: none; padding: 9px 22px; border-radius: 8px; font-weight: 800; font-size: 15px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(22, 163, 74, 0.45); font-family: inherit;">' +
-                '<i class="fas fa-print"></i> 🖨️ طباعة / حفظ PDF' +
+                '<button type="button" id="btn-print-or-pdf" onclick="generateAndSavePDFOrPrint()" style="background: #16a34a; color: #ffffff; border: none; padding: 10px 22px; border-radius: 8px; font-weight: 800; font-size: 15px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(22, 163, 74, 0.45); font-family: inherit;">' +
+                '<i class="fas fa-file-pdf"></i> 🖨️ طباعة / حفظ PDF' +
                 '</button>' +
                 '<span style="font-size: 13px; color: #94a3b8; font-weight: 600;">' +
                 '(في الآيفون: اختر مشاركة أعلى نافذة الطباعة لحفظه PDF)' +
                 '</span>' +
                 '</div>' +
-                '<button type="button" onclick="window.close()" style="background: #dc2626; color: #ffffff; border: none; padding: 9px 18px; border-radius: 8px; font-weight: 800; font-size: 15px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(220, 38, 38, 0.45); font-family: inherit;">' +
+                '<button type="button" onclick="window.close()" style="background: #dc2626; color: #ffffff; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 800; font-size: 15px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(220, 38, 38, 0.45); font-family: inherit;">' +
                 '✖ رجوع للبرنامج' +
                 '</button>' +
                 '</div>';
+
+            var scriptHtml = '<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"><\/script>' +
+                '<script>' +
+                'async function generateAndSavePDFOrPrint() {' +
+                '    var btn = document.getElementById("btn-print-or-pdf");' +
+                '    if (btn) btn.innerHTML = "<i class=\"fas fa-spinner fa-spin\"></i> جاري تجهيز PDF...";' +
+                '    var isMobile = /iPad|iPhone|iPod|Android/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);' +
+                '    var sheet = document.getElementById("report-sheet-container") || document.body;' +
+                '    var filename = "' + title.replace(/[\/:*?"<>|]/g, '_') + '.pdf";' +
+                '    var opt = {' +
+                '        margin: [6, 6, 6, 6],' +
+                '        filename: filename,' +
+                '        image: { type: "jpeg", quality: 0.98 },' +
+                '        html2canvas: { scale: 1.6, useCORS: true, logging: false, backgroundColor: "#ffffff" },' +
+                '        jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },' +
+                '        pagebreak: { mode: ["avoid-all", "css", "legacy"] }' +
+                '    };' +
+                '    try {' +
+                '        if (typeof html2pdf !== "undefined") {' +
+                '            var blob = await html2pdf().set(opt).from(sheet).outputPdf("blob");' +
+                '            if (btn) btn.innerHTML = "<i class=\"fas fa-file-pdf\"></i> 🖨️ طباعة / حفظ PDF";' +
+                '            if (isMobile) {' +
+                '                var pdfFile = new File([blob], filename, { type: "application/pdf" });' +
+                '                if (navigator.share) {' +
+                '                    var canShare = false;' +
+                '                    try { canShare = navigator.canShare && navigator.canShare({ files: [pdfFile] }); } catch(e){}' +
+                '                    if (canShare) {' +
+                '                        try {' +
+                '                            await navigator.share({ files: [pdfFile], title: filename });' +
+                '                            return;' +
+                '                        } catch(shErr) {' +
+                '                            if (shErr.name === "AbortError") return;' +
+                '                        }' +
+                '                    }' +
+                '                }' +
+                '                var blobUrl = URL.createObjectURL(blob);' +
+                '                window.location.href = blobUrl;' +
+                '                return;' +
+                '            }' +
+                '            var url = URL.createObjectURL(blob);' +
+                '            var a = document.createElement("a");' +
+                '            a.href = url;' +
+                '            a.download = filename;' +
+                '            document.body.appendChild(a);' +
+                '            a.click();' +
+                '            setTimeout(function() { document.body.removeChild(a); }, 200);' +
+                '            return;' +
+                '        }' +
+                '    } catch(err) { console.warn("html2pdf fallback to window.print:", err); }' +
+                '    if (btn) btn.innerHTML = "<i class=\"fas fa-file-pdf\"></i> 🖨️ طباعة / حفظ PDF";' +
+                '    window.print();' +
+                '}' +
+                '<\/script>';
 
             return '<!DOCTYPE html>' +
                 '<html dir="rtl" lang="ar">' +
                 '<head>' +
                 '<meta charset="utf-8">' +
+                '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">' +
                 '<title>' + title + '</title>' +
                 '<style>' +
                 '@page { size: A4 landscape; margin: 8mm; }' +
                 '* { box-sizing: border-box; margin: 0; padding: 0; font-family: "Tajawal", Tahoma, Arial, sans-serif; }' +
-                'body { direction: rtl; padding: 6mm 8mm; background: #fff; color: #000; }' +
+                'body { direction: rtl; padding: 0 0 6mm 0; background: #fff; color: #000; }' +
                 '@media print { .print-preview-topbar, .print-hidden { display: none !important; } body { padding: 0 !important; margin: 0 !important; } }' +
                 'table.report-table { width: 100%; max-width: 100%; border-collapse: collapse; table-layout: auto; font-size: 11px; direction: rtl; text-align: center; box-sizing: border-box; }' +
                 'table.report-table th, table.report-table td { border: 1px solid #333; padding: 3px 2px; text-align: center; overflow: visible; font-size: 10.5px; vertical-align: middle; }' +
@@ -5870,7 +5873,10 @@
                 '</head>' +
                 '<body>' +
                 topBarHtml +
+                '<div id="report-sheet-container" style="padding: 6mm 8mm;">' +
                 content +
+                '</div>' +
+                scriptHtml +
                 '</body>' +
                 '</html>';
         }
@@ -5904,15 +5910,16 @@
                 showToast('لم يتم العثور على محتوى الكشف!', 'warning');
                 return;
             }
-            showToast('جاري تجهيز وتقسيم صفحات ملف PDF...', 'info');
+            showToast('جاري تحويل الكشف إلى ملف PDF حقيقي...', 'info');
+
+            var isMobile = /iPad|iPhone|iPod|Android/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
             try {
-                // استنساخ العنصر لتطبيق قواعد تقسيم الصفحات كل 25 صفا دون التأثير على الشاشة
                 var clone = targetElement.cloneNode(true);
                 clone.style.width = '100%';
                 clone.style.maxWidth = '100%';
 
-                // تقسيم الصفحات تلقائياً كل 25 صفا
+                // تقسيم الصفحات كل 25 صفا للكشوف الكبيرة لمنع استنزاف ذاكرة الجوال
                 var rows = clone.querySelectorAll('table.report-table tbody tr');
                 if (rows && rows.length > 0) {
                     for (var r = 0; r < rows.length; r++) {
@@ -5928,22 +5935,45 @@
                 var opt = {
                     margin: [6, 6, 6, 6],
                     filename: defaultName,
-                    image: { type: 'jpeg', quality: 0.95 },
-                    html2canvas: { scale: 1.5, useCORS: true, logging: false, backgroundColor: '#ffffff' },
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 1.6, useCORS: true, logging: false, backgroundColor: '#ffffff' },
                     jsPDF: { unit: 'mm', format: 'a4', orientation: orientation || 'landscape' },
                     pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
                 };
 
                 if (typeof html2pdf !== 'undefined') {
                     var pdfBlob = await html2pdf().set(opt).from(clone).outputPdf('blob');
-                    var blobUrl = URL.createObjectURL(pdfBlob);
+                    var pdfFile = new File([pdfBlob], defaultName, { type: 'application/pdf' });
 
-                    // 1. فتح ملف الـ PDF في نافذة جديدة مباشرة
-                    window.open(blobUrl, '_blank');
+                    // في الآيفون / الجوال: مشاركة الملف عبر navigator.share أو فتح Blob URL
+                    if (isMobile) {
+                        if (navigator.share) {
+                            var canShare = false;
+                            try { canShare = navigator.canShare && navigator.canShare({ files: [pdfFile] }); } catch(e){}
+                            if (canShare) {
+                                try {
+                                    await navigator.share({
+                                        files: [pdfFile],
+                                        title: defaultName
+                                    });
+                                    showToast('✅ تم فتح قائمة مشاركة وحفظ الملف في الآيفون', 'success');
+                                    return;
+                                } catch(shErr) {
+                                    if (shErr.name === 'AbortError') return;
+                                }
+                            }
+                        }
+                        var blobUrl = URL.createObjectURL(pdfBlob);
+                        window.open(blobUrl, '_blank');
+                        showToast('تم فتح ملف PDF (اختر مشاركة ثم حفظ في الملفات)', 'info');
+                        showPdfDirectReadyModal(blobUrl, defaultName);
+                        return;
+                    }
 
-                    // 2. تشغيل رابط التنزيل للأندرويد والكمبيوتر
+                    // في الكمبيوتر: تنزيل ملف الـ PDF مباشرة
+                    var url = URL.createObjectURL(pdfBlob);
                     var a = document.createElement('a');
-                    a.href = blobUrl;
+                    a.href = url;
                     a.download = defaultName;
                     document.body.appendChild(a);
                     a.click();
@@ -5951,14 +5981,12 @@
                         if (a.parentNode) a.parentNode.removeChild(a);
                     }, 200);
 
-                    // 3. عرض تنبيه وزر مباشر للمستخدم لحفظ الملف على الآيفون
-                    showToast('✅ تم تجهيز ملف PDF بنجاح! للآيفون: اضغط مشاركة ثم (حفظ في الملفات)', 'success');
-                    showPdfDirectReadyModal(blobUrl, defaultName);
+                    showToast('✅ تم تنزيل ملف PDF بنجاح', 'success');
                     return;
                 }
             } catch (pdfErr) {
                 console.error('PDF generation error:', pdfErr);
-                showToast('حدث خطأ أثناء تصدير PDF، جاري التحويل للطباعة للحفظ كـ PDF', 'warning');
+                showToast('تعذر تصدير PDF، جاري التحويل للطباعة للحفظ كـ PDF', 'warning');
                 printCurrentPreview();
             }
         }
@@ -6446,26 +6474,80 @@
 
         function buildArchivedFullDocumentHTML(item, orientation) {
             var title = (item && item.title) ? item.title : 'كشف_درجات_مؤرشف';
-            var topBarHtml = '<div class="print-preview-topbar" style="position: sticky; top: 0; z-index: 999999; background: #0f172a; color: #ffffff; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.4); font-family: \'Tajawal\', Tahoma, Arial, sans-serif; direction: rtl; gap: 12px; flex-wrap: wrap;">' +
+
+            var topBarHtml = '<div class="print-preview-topbar" style="position: sticky; top: 0; z-index: 999999; background: #0f172a; color: #ffffff; padding-top: calc(env(safe-area-inset-top, 0px) + 3rem) !important; padding-bottom: 0.85rem !important; padding-left: 1.25rem !important; padding-right: 1.25rem !important; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.45); font-family: \'Tajawal\', Tahoma, Arial, sans-serif; direction: rtl; gap: 12px; flex-wrap: wrap;">' +
                 '<div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">' +
-                '<button type="button" onclick="window.print()" style="background: #16a34a; color: #ffffff; border: none; padding: 9px 22px; border-radius: 8px; font-weight: 800; font-size: 15px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(22, 163, 74, 0.45); font-family: inherit;">' +
-                '<i class="fas fa-print"></i> 🖨️ طباعة / حفظ PDF' +
+                '<button type="button" id="btn-print-or-pdf" onclick="generateAndSavePDFOrPrint()" style="background: #16a34a; color: #ffffff; border: none; padding: 10px 22px; border-radius: 8px; font-weight: 800; font-size: 15px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(22, 163, 74, 0.45); font-family: inherit;">' +
+                '<i class="fas fa-file-pdf"></i> 🖨️ طباعة / حفظ PDF' +
                 '</button>' +
                 '<span style="font-size: 13px; color: #94a3b8; font-weight: 600;">' +
                 '(في الآيفون: اختر مشاركة أعلى نافذة الطباعة لحفظه PDF)' +
                 '</span>' +
                 '</div>' +
-                '<button type="button" onclick="window.close()" style="background: #dc2626; color: #ffffff; border: none; padding: 9px 18px; border-radius: 8px; font-weight: 800; font-size: 15px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(220, 38, 38, 0.45); font-family: inherit;">' +
+                '<button type="button" onclick="window.close()" style="background: #dc2626; color: #ffffff; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 800; font-size: 15px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(220, 38, 38, 0.45); font-family: inherit;">' +
                 '✖ رجوع للبرنامج' +
                 '</button>' +
                 '</div>';
 
-            return '<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>' +
-                title +
-                '</title><style>' +
+            var scriptHtml = '<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"><\/script>' +
+                '<script>' +
+                'async function generateAndSavePDFOrPrint() {' +
+                '    var btn = document.getElementById("btn-print-or-pdf");' +
+                '    if (btn) btn.innerHTML = "<i class=\"fas fa-spinner fa-spin\"></i> جاري تجهيز PDF...";' +
+                '    var isMobile = /iPad|iPhone|iPod|Android/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);' +
+                '    var sheet = document.getElementById("report-sheet-container") || document.body;' +
+                '    var filename = "' + title.replace(/[\/:*?"<>|]/g, '_') + '.pdf";' +
+                '    var opt = {' +
+                '        margin: [6, 6, 6, 6],' +
+                '        filename: filename,' +
+                '        image: { type: "jpeg", quality: 0.98 },' +
+                '        html2canvas: { scale: 1.6, useCORS: true, logging: false, backgroundColor: "#ffffff" },' +
+                '        jsPDF: { unit: "mm", format: "a4", orientation: "' + (orientation || 'landscape') + '" },' +
+                '        pagebreak: { mode: ["avoid-all", "css", "legacy"] }' +
+                '    };' +
+                '    try {' +
+                '        if (typeof html2pdf !== "undefined") {' +
+                '            var blob = await html2pdf().set(opt).from(sheet).outputPdf("blob");' +
+                '            if (btn) btn.innerHTML = "<i class=\"fas fa-file-pdf\"></i> 🖨️ طباعة / حفظ PDF";' +
+                '            if (isMobile) {' +
+                '                var pdfFile = new File([blob], filename, { type: "application/pdf" });' +
+                '                if (navigator.share) {' +
+                '                    var canShare = false;' +
+                '                    try { canShare = navigator.canShare && navigator.canShare({ files: [pdfFile] }); } catch(e){}' +
+                '                    if (canShare) {' +
+                '                        try {' +
+                '                            await navigator.share({ files: [pdfFile], title: filename });' +
+                '                            return;' +
+                '                        } catch(shErr) {' +
+                '                            if (shErr.name === "AbortError") return;' +
+                '                        }' +
+                '                    }' +
+                '                }' +
+                '                var blobUrl = URL.createObjectURL(blob);' +
+                '                window.location.href = blobUrl;' +
+                '                return;' +
+                '            }' +
+                '            var url = URL.createObjectURL(blob);' +
+                '            var a = document.createElement("a");' +
+                '            a.href = url;' +
+                '            a.download = filename;' +
+                '            document.body.appendChild(a);' +
+                '            a.click();' +
+                '            setTimeout(function() { document.body.removeChild(a); }, 200);' +
+                '            return;' +
+                '        }' +
+                '    } catch(err) { console.warn("html2pdf fallback to window.print:", err); }' +
+                '    if (btn) btn.innerHTML = "<i class=\"fas fa-file-pdf\"></i> 🖨️ طباعة / حفظ PDF";' +
+                '    window.print();' +
+                '}' +
+                '<\/script>';
+
+            return '<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8">' +
+                '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">' +
+                '<title>' + title + '</title><style>' +
                 '@page { size: A4 ' + (orientation || 'landscape') + '; margin: 8mm; } ' +
                 '* { box-sizing: border-box; margin: 0; padding: 0; font-family: "Tajawal", Tahoma, sans-serif; } ' +
-                'body { direction: rtl; padding: 6mm 8mm; background: #fff; color: #000; } ' +
+                'body { direction: rtl; padding: 0 0 6mm 0; background: #fff; color: #000; } ' +
                 '@media print { .print-preview-topbar, .print-hidden { display: none !important; } body { padding: 0 !important; margin: 0 !important; } } ' +
                 'table.report-table { width: 100%; border-collapse: collapse; font-size: 11px; text-align: center; } ' +
                 'table.report-table th, table.report-table td { border: 1px solid #333; padding: 4px 2px; } ' +
@@ -6473,7 +6555,10 @@
                 '@media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }' +
                 '</style></head><body>' +
                 topBarHtml +
+                '<div id="report-sheet-container" style="padding: 6mm 8mm;">' +
                 buildArchivedReportHTML(item, orientation) +
+                '</div>' +
+                scriptHtml +
                 '</body></html>';
         }
 
