@@ -1045,7 +1045,7 @@
     <aside class="sidebar">
         <div class="sidebar-header">
             <h2><i class="fas fa-graduation-cap"></i> سجل الدرجات الذكي</h2>
-            <p id="sidebar-subtitle">نظام متابعة ورصد الدرجات (v8.1)</p>
+            <p id="sidebar-subtitle">نظام متابعة ورصد الدرجات (v8.2)</p>
         </div>
         <ul class="nav-menu">
             <li class="nav-item active" onclick="switchTab('dashboard', this)">
@@ -1098,7 +1098,7 @@
             </div>
             <div style="display: flex; align-items: center; gap: 0.75rem;">
                 <div id="licenseHeaderBadgeContainer" style="display: flex; align-items: center;"></div>
-                <span id="app-version-badge" class="badge" style="background: #e2e8f0; color: #1e293b; font-size: 0.8rem; font-weight: 800; border: 1.5px solid #cbd5e1; padding: 4px 10px; border-radius: 9999px;">v8.1</span>
+                <span id="app-version-badge" class="badge" style="background: #e2e8f0; color: #1e293b; font-size: 0.8rem; font-weight: 800; border: 1.5px solid #cbd5e1; padding: 4px 10px; border-radius: 9999px;">v8.2</span>
                 <span id="whatsapp-status-badge" class="badge badge-success"><i class="fab fa-whatsapp"></i> واتساب مفعل</span>
                 <div style="text-align: left;">
                     <div id="top-teacher-name" style="font-weight: 700; font-size: 0.9rem;">المعلم: ---</div>
@@ -5890,31 +5890,45 @@
 
         // توليد ملف PDF ومشاركته على أجهزة iOS/iPadOS مع حاوية مرئية بيضاء مؤقتة تمنع الصفحة البيضاء
         async function generateAndSharePdf() {
-            await ensureHtml2PdfLoaded();
-            const sourceEl = document.getElementById('printArea') || document.querySelector('.print-content') || (document.querySelector('table') ? document.querySelector('table').parentElement : null);
-            if (!sourceEl || !sourceEl.innerHTML.trim()) { alert('لا يوجد تقرير للطباعة'); return; }
+            if (typeof ensureHtml2PdfLoaded === 'function') await ensureHtml2PdfLoaded();
+            const visibleTables = Array.from(document.querySelectorAll('table')).filter(t => t.offsetParent !== null);
+            const targetTable = visibleTables[0] || document.querySelector('table');
+            const headerArea = document.getElementById('printArea') || targetTable?.parentElement;
 
-            // إنشاء حاوية مؤقتة مرئية بأبعاد A4 لضمان عدم ظهور صفحة بيضاء في iOS
+            if (!targetTable && !headerArea) {
+                alert('الرجاء فتح الكشف أولاً قبل الطباعة');
+                return;
+            }
+
+            const contentHtml = (headerArea && headerArea.innerText.trim().length > 20)
+                ? headerArea.innerHTML
+                : targetTable.outerHTML;
+
+            const prevScrollY = window.scrollY;
+            window.scrollTo(0, 0);
+
             const wrapper = document.createElement('div');
-            wrapper.style.cssText = 'position:fixed; top:0; left:0; width:794px; background:#ffffff; color:#000000; padding:20px; z-index:999999; direction:rtl; font-family:Arial,sans-serif;';
+            wrapper.style.cssText = 'position:absolute; top:0; left:0; width:794px; background:#ffffff; color:#000000; padding:20px; z-index:999999; direction:rtl; font-family:Arial,sans-serif; display:block !important; visibility:visible !important; opacity:1 !important;';
             wrapper.innerHTML = `<style>
-                table { width: 100% !important; border-collapse: collapse !important; font-size: 12px !important; }
-                th, td { border: 1px solid #000 !important; padding: 6px !important; text-align: center !important; color: #000 !important; }
-                th { background-color: #f0f0f0 !important; }
-                * { overflow: visible !important; max-height: none !important; }
-            </style>` + sourceEl.innerHTML;
+                * { box-sizing: border-box; overflow: visible !important; max-height: none !important; opacity: 1 !important; visibility: visible !important; }
+                table { width: 100% !important; border-collapse: collapse !important; font-size: 12px !important; display: table !important; }
+                thead { display: table-header-group !important; }
+                tbody { display: table-row-group !important; }
+                tr { display: table-row !important; }
+                th, td { display: table-cell !important; border: 1px solid #000 !important; padding: 6px !important; text-align: center !important; color: #000 !important; background: #fff !important; }
+                th { background-color: #e5e7eb !important; font-weight: bold !important; }
+                button, .no-print { display: none !important; }
+            </style>` + contentHtml;
 
             document.body.appendChild(wrapper);
-
-            // انتظار لحظة قصيرة ليرسم المتصفح العناصر قبل التصوير
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await new Promise(r => setTimeout(r, 400));
 
             try {
                 const opt = {
-                    margin: 10,
+                    margin: 8,
                     filename: 'كشف_الدرجات.pdf',
                     image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollY: 0 },
+                    html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0, windowWidth: 794 },
                     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
                 };
                 const pdfBlob = await html2pdf().set(opt).from(wrapper).outputPdf('blob');
@@ -5923,13 +5937,13 @@
                 if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
                     await navigator.share({ files: [pdfFile], title: 'كشف الدرجات' });
                 } else {
-                    const url = URL.createObjectURL(pdfBlob);
-                    window.open(url, '_blank');
+                    window.open(URL.createObjectURL(pdfBlob), '_blank');
                 }
             } finally {
                 if (wrapper.parentNode) {
-                    wrapper.parentNode.removeChild(wrapper);
+                    document.body.removeChild(wrapper);
                 }
+                window.scrollTo(0, prevScrollY);
             }
         }
 
