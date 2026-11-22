@@ -1045,7 +1045,7 @@
     <aside class="sidebar">
         <div class="sidebar-header">
             <h2><i class="fas fa-graduation-cap"></i> سجل الدرجات الذكي</h2>
-            <p id="sidebar-subtitle">نظام متابعة ورصد الدرجات (v6.0)</p>
+            <p id="sidebar-subtitle">نظام متابعة ورصد الدرجات (v7.0)</p>
         </div>
         <ul class="nav-menu">
             <li class="nav-item active" onclick="switchTab('dashboard', this)">
@@ -1098,7 +1098,7 @@
             </div>
             <div style="display: flex; align-items: center; gap: 0.75rem;">
                 <div id="licenseHeaderBadgeContainer" style="display: flex; align-items: center;"></div>
-                <span id="app-version-badge" class="badge" style="background: #e2e8f0; color: #1e293b; font-size: 0.8rem; font-weight: 800; border: 1.5px solid #cbd5e1; padding: 4px 10px; border-radius: 9999px;">v6.0</span>
+                <span id="app-version-badge" class="badge" style="background: #e2e8f0; color: #1e293b; font-size: 0.8rem; font-weight: 800; border: 1.5px solid #cbd5e1; padding: 4px 10px; border-radius: 9999px;">v7.0</span>
                 <span id="whatsapp-status-badge" class="badge badge-success"><i class="fab fa-whatsapp"></i> واتساب مفعل</span>
                 <div style="text-align: left;">
                     <div id="top-teacher-name" style="font-weight: 700; font-size: 0.9rem;">المعلم: ---</div>
@@ -5888,7 +5888,7 @@
             });
         }
 
-        // الدالة الموحدة والمضمونة 100% لطباعة الكشف وحفظه كـ PDF على جميع الأجهزة (الكمبيوتر والآيفون والأندرويد)
+        // الدالة الموحدة والمضمونة 100% لطباعة الكشف وحفظه كـ PDF على جميع الأجهزة
         function exportReportPDF(isPrintMode, btnEl) {
             // العثور على الكشف المعروض حالياً (سواء معاينة عادية أو أرشيف)
             var sourceSheet = document.getElementById('preview-sheet');
@@ -5917,7 +5917,25 @@
                 printArea.innerHTML = reportHtml;
             }
 
-            // استدعاء نافذة الطباعة وحفظ PDF الأصلية مباشرة دون حظر المتصفح
+            var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+            // على الآيفون والآيباد: مشاركة ملف HTML نظيف عبر قائمة المشاركة الأصلية لنظام iOS
+            if (isIOS) {
+                const reportEl = document.getElementById('printArea') || document.querySelector('.print-content') || (document.querySelector('table') ? document.querySelector('table').parentElement : null);
+                const contentInner = reportEl ? reportEl.innerHTML : reportHtml;
+                const cleanHtml = `<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>كشف الدرجات</title><style>body{font-family:Arial,sans-serif;direction:rtl;padding:15px;} table{width:100%;border-collapse:collapse;font-size:12px;} th,td{border:1px solid #000;padding:5px;text-align:center;} th{background:#eee;}</style></head><body>${contentInner}</body></html>`;
+                const file = new File([cleanHtml], 'كشف_الدرجات.html', { type: 'text/html' });
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    navigator.share({ files: [file], title: 'كشف الدرجات' }).catch(function(err) {
+                        if (err && err.name !== 'AbortError') window.print();
+                    });
+                } else {
+                    window.print();
+                }
+                return;
+            }
+
+            // على الكمبيوتر: تنفيذ window.print() مباشرة
             window.print();
         }
 
@@ -5942,47 +5960,42 @@
             openPrintPreview(mode);
         }
 
-        // تصدير Word ليعمل على الكمبيوتر والآيفون مهما كان حجم الجدول عبر Blob
+        // تصدير Word ليعمل على الكمبيوتر والآيفون مهما كان حجم الجدول عبر Blob (مضمون 100%)
         function savePreviewAsWord() {
-            var reportEl = document.getElementById('preview-sheet') || document.getElementById('archive-preview-sheet') || document.getElementById('printArea') || document.querySelector('.print-content') || (document.querySelector('table') ? document.querySelector('table').parentElement : null);
-            
-            if (!reportEl || !reportEl.innerHTML.trim()) {
-                var sheet = document.getElementById('preview-sheet');
-                if (sheet) sheet.innerHTML = buildReportHTML(currentPreviewMode || 'detailed');
-                reportEl = sheet || document.getElementById('printArea');
+            var sourceSheet = document.getElementById('preview-sheet');
+            var isArchive = false;
+            var archiveModal = document.getElementById('archive-print-preview-modal');
+            if (archiveModal && archiveModal.classList.contains('active')) {
+                sourceSheet = document.getElementById('archive-preview-sheet') || document.getElementById('archive-print-sheet');
+                isArchive = true;
+            }
+            if (!sourceSheet || !sourceSheet.innerHTML.trim()) {
+                sourceSheet = document.getElementById('printArea') || document.getElementById('print-area') || document.querySelector('.report-sheet') || document.getElementById('report-sheet-container');
             }
 
-            var defaultName = 'كشف_الدرجات.doc';
-            try {
-                var isArchive = false;
-                var archiveModal = document.getElementById('archive-print-preview-modal');
-                if (archiveModal && archiveModal.classList.contains('active')) {
-                    isArchive = true;
-                }
-                if (isArchive && currentArchivePreviewItem && currentArchivePreviewItem.title) {
-                    defaultName = currentArchivePreviewItem.title.replace(/[\/:*?"<>|]/g, '_') + '.doc';
-                } else if (typeof getReportDefaultFileName === 'function') {
-                    defaultName = getReportDefaultFileName('doc', currentPreviewMode || 'detailed');
-                }
-                if (!defaultName.endsWith('.doc')) defaultName += '.doc';
-            } catch(e) {}
-
-            var cleanHtml = '';
-            if (reportEl) {
-                var clone = reportEl.cloneNode(true);
+            var reportHtml = '';
+            if (sourceSheet && sourceSheet.innerHTML.trim()) {
+                var clone = sourceSheet.cloneNode(true);
                 var noPrintEls = clone.querySelectorAll('.no-print, .print-preview-topbar, .preview-actions, button');
                 for (var n = 0; n < noPrintEls.length; n++) noPrintEls[n].remove();
-                cleanHtml = clone.innerHTML;
+                reportHtml = clone.innerHTML;
             } else {
-                cleanHtml = buildReportHTML(currentPreviewMode || 'detailed');
+                reportHtml = buildReportHTML(currentPreviewMode || 'detailed');
             }
 
-            const htmlContent = `\uFEFF<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40' dir='rtl'><head><meta charset='utf-8'><style>body{font-family:Arial,sans-serif;direction:rtl;} table{width:100%;border-collapse:collapse;} th,td{border:1px solid #000;padding:6px;text-align:center;}</style></head><body>${cleanHtml}</body></html>`;
+            var printArea = document.getElementById('printArea') || document.getElementById('print-area');
+            if (printArea) {
+                printArea.innerHTML = reportHtml;
+            }
+
+            const reportEl = document.getElementById('printArea') || document.querySelector('.print-content') || (document.querySelector('table') ? document.querySelector('table').parentElement : null);
+            const contentHtml = reportEl ? reportEl.innerHTML : reportHtml;
+            const htmlContent = `\uFEFF<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40' dir='rtl'><head><meta charset='utf-8'><style>body{font-family:Arial,sans-serif;direction:rtl;} table{width:100%;border-collapse:collapse;} th,td{border:1px solid #000;padding:6px;text-align:center;}</style></head><body>${contentHtml}</body></html>`;
             const blob = new Blob([htmlContent], { type: 'application/msword;charset=utf-8' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = defaultName || 'كشف_الدرجات.doc';
+            link.download = 'كشف_الدرجات.doc';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
