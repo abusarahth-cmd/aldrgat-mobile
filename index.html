@@ -1285,7 +1285,7 @@
                                         <i class="fas fa-server"></i> رابط خادم الإرسال والـ QR (WA_SERVER_URL):
                                     </label>
                                     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                                        <input type="url" id="wa-server-url-input" class="form-control" placeholder="http://localhost:3000 أو رابط خادمك السحابي" style="flex: 1; min-width: 240px; direction: ltr; font-family: monospace; font-size: 0.88rem;">
+                                        <input type="url" id="wa-server-url-input" class="form-control" placeholder="https://wa-cloud-c5po.onrender.com" value="https://wa-cloud-c5po.onrender.com" style="flex: 1; min-width: 240px; direction: ltr; font-family: monospace; font-size: 0.88rem;">
                                         <button type="button" class="btn btn-primary" onclick="connectWhatsAppServer(true)" style="font-weight: 700; padding: 0.55rem 1.25rem;">
                                             <i class="fas fa-qrcode"></i> ربط واتساب (جلب QR)
                                         </button>
@@ -2997,23 +2997,56 @@
         }
 
         // =========================================================================
-        // ربط واتساب الحقيقي عبر خادم WhatsApp Web / Baileys (مسارات /qr و /status و /send-bulk)
+        // ربط واتساب السحابي وعزل الجلسات لكل مستخدم (Multi-tenant Cloud Server: https://wa-cloud-c5po.onrender.com)
         // =========================================================================
+        var DEFAULT_WA_CLOUD_SERVER = 'https://wa-cloud-c5po.onrender.com';
         var waQrPollInterval = null;
-        var waQrTimeout = null;
+        var waWakeupRetryCount = 0;
+
+        // دالة توليد وتثبيت معرف جلسة فريد لكل مستخدم/مدرسة لمنع تداخل الجلسات
+        function getWhatsAppSessionId() {
+            var raw = '';
+            try {
+                if (window.LicenseGuard && typeof window.LicenseGuard.getDeviceId === 'function') {
+                    raw = window.LicenseGuard.getDeviceId();
+                }
+            } catch(e) {}
+
+            if (!raw) {
+                try { raw = localStorage.getItem('pwa_device_id') || localStorage.getItem('aldragat_device_id'); } catch(e) {}
+            }
+
+            if (!raw && appData && appData.settings) {
+                raw = appData.settings.schoolName || appData.settings.teacherName || '';
+            }
+
+            // تنظيف المعرف ليحتوي على أحرف إنجليزية وأرقام فقط
+            var clean = String(raw).replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+            if (!clean || clean.length < 3) clean = 'user_' + Math.abs(hashCode(navigator.userAgent || 'sch'));
+            return 'grades_' + clean;
+        }
 
         function getWhatsAppServerUrl() {
             var input = document.getElementById('wa-server-url-input');
             var val = input ? input.value.trim() : '';
-            if (val) return val.replace(/\/+$/, '');
-            if (appData.settings && appData.settings.whatsappServerUrl) {
+            if (val && !val.includes('localhost:3000')) return val.replace(/\/+$/, '');
+            if (appData.settings && appData.settings.whatsappServerUrl && !appData.settings.whatsappServerUrl.includes('localhost:3000')) {
                 return appData.settings.whatsappServerUrl.replace(/\/+$/, '');
             }
-            return 'http://localhost:3000';
+            return DEFAULT_WA_CLOUD_SERVER;
+        }
+
+        // بناء روابط الـ API مع تمرير معرف الجلسة ?id=... لعزل الجلسات السحابية
+        function buildWhatsAppApiUrl(path) {
+            var base = getWhatsAppServerUrl();
+            var sid = getWhatsAppSessionId();
+            var sep = path.includes('?') ? '&' : '?';
+            return base + path + sep + 'id=' + encodeURIComponent(sid);
         }
 
         async function connectWhatsAppServer(showUserToast) {
             var serverUrl = getWhatsAppServerUrl();
+            var sid = getWhatsAppSessionId();
             if (!appData.settings) appData.settings = {};
             appData.settings.whatsappServerUrl = serverUrl;
             await saveData();
@@ -3026,97 +3059,124 @@
             var canvasWrapper = document.getElementById('wa-qr-canvas-wrapper');
             var qrTarget = document.getElementById('wa-real-qr-canvas');
 
-            if (spinner) spinner.style.display = 'block';
-            if (canvasWrapper) canvasWrapper.style.display = 'none';
-            if (statusInfo) statusInfo.innerHTML = '<span style="color: #0284c7;"><i class="fas fa-spinner fa-spin"></i> جاري الاتصال بالخادم: ' + serverUrl + '...</span>';
-
-            if (showUserToast) showToast('جاري طلب رمز QR من الخادم...', 'info');
-
-            try {
-                // 1. أولاً: فحص هل الخادم متصل بالفعل؟
-                var statusResp = await fetch(serverUrl + '/status', { method: 'GET', signal: AbortSignal.timeout(5000) }).catch(function() {
-                    return fetch(serverUrl + '/api/status', { method: 'GET', signal: AbortSignal.timeout(5000) });
-                });
-
-                if (statusResp && statusResp.ok) {
-                    var sData = await statusResp.json();
-                    if (sData && sData.connected) {
-                        setWhatsAppConnectedUI(true, serverUrl);
-                        if (showUserToast) showToast('✅ تم الاتصال: واتساب متصل بالفعل!', 'success');
-                        return;
-                    }
-                }
-
-                // 2. جلب رمز الـ QR الفعلي من مسار /qr أو /api/qr
-                var qrResp = await fetch(serverUrl + '/qr', { method: 'GET', signal: AbortSignal.timeout(7000) }).catch(function() {
-                    return fetch(serverUrl + '/api/qr', { method: 'GET', signal: AbortSignal.timeout(7000) });
-                });
-
-                if (!qrResp || !qrResp.ok) {
-                    throw new Error('الخادم لم يرجع رمز QR نشط');
-                }
-
-                var contentType = qrResp.headers.get('content-type') || '';
-                if (spinner) spinner.style.display = 'none';
-                if (canvasWrapper) canvasWrapper.style.display = 'flex';
-
-                if (contentType.includes('image')) {
-                    // الرمز عبارة عن صورة مباشرة
-                    var blob = await qrResp.blob();
-                    var imgUrl = URL.createObjectURL(blob);
-                    qrTarget.innerHTML = '<img src="' + imgUrl + '" style="width: 220px; height: 220px; border-radius: 8px;" alt="WhatsApp QR">';
-                } else {
-                    // الرمز نصي أو JSON
-                    var textOrJson = await qrResp.text();
-                    var qrString = '';
-                    try {
-                        var parsed = JSON.parse(textOrJson);
-                        if (parsed.connected) {
-                            setWhatsAppConnectedUI(true, serverUrl);
-                            return;
-                        }
-                        if (parsed.qrImage) {
-                            qrTarget.innerHTML = '<img src="' + parsed.qrImage + '" style="width: 220px; height: 220px; border-radius: 8px;" alt="WhatsApp QR">';
-                            qrString = null;
-                        } else {
-                            qrString = parsed.qr || parsed.code || textOrJson;
-                        }
-                    } catch (e) {
-                        qrString = textOrJson.trim();
-                    }
-
-                    if (qrString) {
-                        qrTarget.innerHTML = '';
-                        if (typeof QRCode !== 'undefined') {
-                            new QRCode(qrTarget, {
-                                text: qrString,
-                                width: 220,
-                                height: 220,
-                                colorDark: '#0f172a',
-                                colorLight: '#ffffff',
-                                correctLevel: QRCode.CorrectLevel.M
-                            });
-                        } else {
-                            qrTarget.innerHTML = '<p style="color: #dc2626;">تعذر تحميل مكتبة QRCode</p>';
-                        }
-                    }
-                }
-
-                setWhatsAppConnectedUI(false, serverUrl, 'بانتظار مسح الرمز من واتساب الهاتف');
-                if (statusInfo) statusInfo.innerHTML = '<span style="color: #059669; font-weight: 700;">✅ تم جلب رمز QR بنجاح! امسحه الآن من واتساب (الأجهزة المرتبطة).</span>';
-                if (showUserToast) showToast('تم جلب رمز QR، امسحه الآن من هاتفك', 'info');
-
-                // بدء الاستطلاع التلقائي للتحقق من إتمام الربط
-                startWhatsAppStatusPolling(serverUrl);
-
-            } catch (err) {
-                if (spinner) spinner.style.display = 'none';
-                if (canvasWrapper) canvasWrapper.style.display = 'flex';
-                qrTarget.innerHTML = '<div style="color: #dc2626; padding: 1.5rem;"><i class="fas fa-exclamation-triangle fa-2x"></i><p style="margin-top: 0.5rem; font-weight: 700;">تعذر جلب رمز QR من الخادم</p><p style="font-size: 0.8rem; color: #64748b;">تأكد من تشغيل خادم Node.js (Baileys / whatsapp-web) على الرابط: ' + serverUrl + '</p></div>';
-                setWhatsAppConnectedUI(false, serverUrl, 'تعذر الاتصال بالخادم');
-                if (statusInfo) statusInfo.innerHTML = '<span style="color: #dc2626; font-weight: 700;">⚠️ فشل الاتصال بالخادم: ' + (err.message || 'خطأ في الشبكة') + '</span>';
-                if (showUserToast) showToast('تعذر الاتصال بخادم الواتساب', 'danger');
+            if (spinner) {
+                spinner.style.display = 'block';
+                spinner.innerHTML = '<i class="fas fa-spinner fa-spin fa-2x" style="color: #0f766e;"></i>' +
+                    '<p style="margin-top: 0.75rem; font-size: 0.92rem; color: #047857; font-weight: 700;">' +
+                    'جاري إيقاظ الخادم السحابي وتوليد الباركود (قد يستغرق 20-40 ثانية في أول مرة)...' +
+                    '</p>' +
+                    '<small style="color: #64748b;">جلسة المعلم: <code>' + sid + '</code></small>';
             }
+            if (canvasWrapper) canvasWrapper.style.display = 'none';
+            if (statusInfo) statusInfo.innerHTML = '<span style="color: #0284c7; font-weight: 700;"><i class="fas fa-spinner fa-spin"></i> جاري إيقاظ الخادم السحابي وتوليد الباركود (قد يستغرق 20-40 ثانية في أول مرة)...</span>';
+
+            if (showUserToast) showToast('جاري إيقاظ الخادم السحابي وجلب رمز QR...', 'info');
+
+            // محاولة جلب الباركود مع إعادة المحاولة التلقائية كل 3 ثوانٍ حتى يستيقظ الخادم السحابي (Render)
+            if (waQrPollInterval) clearInterval(waQrPollInterval);
+            waWakeupRetryCount = 0;
+
+            var attemptFetch = async function() {
+                waWakeupRetryCount++;
+                try {
+                    // 1. فحص هل الجلسة متصلة بالفعل؟
+                    var statusUrl = buildWhatsAppApiUrl('/status');
+                    var statusResp = await fetch(statusUrl, { method: 'GET', signal: AbortSignal.timeout(7000) }).catch(function() { return null; });
+                    if (statusResp && statusResp.ok) {
+                        var sData = await statusResp.json();
+                        if (sData && sData.connected) {
+                            if (waQrPollInterval) clearInterval(waQrPollInterval);
+                            setWhatsAppConnectedUI(true, serverUrl);
+                            if (statusInfo) statusInfo.innerHTML = '<span style="color: #16a34a; font-weight: 700;">✅ متصل بنجاح! جلسة الواتساب نشطة وجاهزة للإرسال.</span>';
+                            if (showUserToast) showToast('✅ تم الاتصال: واتساب متصل بالفعل!', 'success');
+                            return true;
+                        }
+                    }
+
+                    // 2. جلب رمز الـ QR من مسار /qr مع تمرير ?id=...
+                    var qrUrl = buildWhatsAppApiUrl('/qr');
+                    var qrResp = await fetch(qrUrl, { method: 'GET', signal: AbortSignal.timeout(8000) }).catch(function() { return null; });
+
+                    if (qrResp && qrResp.ok) {
+                        var contentType = qrResp.headers.get('content-type') || '';
+                        if (spinner) spinner.style.display = 'none';
+                        if (canvasWrapper) canvasWrapper.style.display = 'flex';
+
+                        if (contentType.includes('image')) {
+                            var blob = await qrResp.blob();
+                            var imgUrl = URL.createObjectURL(blob);
+                            qrTarget.innerHTML = '<img src="' + imgUrl + '" style="width: 220px; height: 220px; border-radius: 8px;" alt="WhatsApp QR">';
+                        } else {
+                            var textOrJson = await qrResp.text();
+                            var qrString = '';
+                            try {
+                                var parsed = JSON.parse(textOrJson);
+                                if (parsed.connected) {
+                                    if (waQrPollInterval) clearInterval(waQrPollInterval);
+                                    setWhatsAppConnectedUI(true, serverUrl);
+                                    return true;
+                                }
+                                if (parsed.qrImage) {
+                                    qrTarget.innerHTML = '<img src="' + parsed.qrImage + '" style="width: 220px; height: 220px; border-radius: 8px;" alt="WhatsApp QR">';
+                                    qrString = null;
+                                } else {
+                                    qrString = parsed.qr || parsed.code || textOrJson;
+                                }
+                            } catch (e) {
+                                qrString = textOrJson.trim();
+                            }
+
+                            if (qrString) {
+                                qrTarget.innerHTML = '';
+                                if (typeof QRCode !== 'undefined') {
+                                    new QRCode(qrTarget, {
+                                        text: qrString,
+                                        width: 220,
+                                        height: 220,
+                                        colorDark: '#0f172a',
+                                        colorLight: '#ffffff',
+                                        correctLevel: QRCode.CorrectLevel.M
+                                    });
+                                }
+                            }
+                        }
+
+                        setWhatsAppConnectedUI(false, serverUrl, 'بانتظار مسح الرمز من واتساب الهاتف');
+                        if (statusInfo) statusInfo.innerHTML = '<span style="color: #059669; font-weight: 700;">✅ الخادم نشط وتم توليد الباركود! امسحه الآن من واتساب (الأجهزة المرتبطة).</span>';
+                        if (showUserToast) showToast('تم توليد باركود الربط، امسحه الآن من هاتفك', 'info');
+
+                        // بدء استطلاع إتمام المسح بنجاح
+                        startWhatsAppStatusPolling(serverUrl);
+                        return true;
+                    }
+                } catch (err) {
+                    console.warn('Wakeup attempt error:', err);
+                }
+                return false;
+            };
+
+            // تشغيل المحاولة الأولى فوراً
+            var ok = await attemptFetch();
+            if (ok) return;
+
+            // استمرار إعادة المحاولة كل 3 ثوانٍ حتى يستيقظ الخادم (حتى 20 محاولة = 60 ثانية)
+            waQrPollInterval = setInterval(async function() {
+                if (waWakeupRetryCount >= 20) {
+                    clearInterval(waQrPollInterval);
+                    if (spinner) spinner.style.display = 'none';
+                    if (canvasWrapper) canvasWrapper.style.display = 'flex';
+                    qrTarget.innerHTML = '<div style="color: #dc2626; padding: 1.5rem;"><i class="fas fa-exclamation-triangle fa-2x"></i><p style="margin-top: 0.5rem; font-weight: 700;">استغرق الخادم وقتاً أطول من المتوقع للاستيقاظ</p><p style="font-size: 0.82rem; color: #64748b;">يرجى إعادة الضغط على "ربط واتساب (جلب QR)" للمحاولة مجدداً.</p></div>';
+                    if (statusInfo) statusInfo.innerHTML = '<span style="color: #dc2626; font-weight: 700;">⚠️ تعذر استجابة الخادم في الوقت المحدد. يرجى المحاولة مرة أخرى.</span>';
+                    return;
+                }
+
+                if (statusInfo) statusInfo.innerHTML = '<span style="color: #0284c7; font-weight: 700;"><i class="fas fa-spinner fa-spin"></i> جاري إيقاظ الخادم السحابي وتوليد الباركود (محاولة ' + waWakeupRetryCount + ' من 20)...</span>';
+
+                var success = await attemptFetch();
+                if (success) {
+                    clearInterval(waQrPollInterval);
+                }
+            }, 3000);
         }
 
         function startWhatsAppStatusPolling(serverUrl) {
@@ -3124,14 +3184,13 @@
             var attempts = 0;
             waQrPollInterval = setInterval(async function() {
                 attempts++;
-                if (attempts > 30) { // توقف بعد 90 ثانية
+                if (attempts > 35) { // توقف بعد 105 ثوانٍ
                     clearInterval(waQrPollInterval);
                     return;
                 }
                 try {
-                    var resp = await fetch(serverUrl + '/status', { method: 'GET' }).catch(function() {
-                        return fetch(serverUrl + '/api/status');
-                    });
+                    var statusUrl = buildWhatsAppApiUrl('/status');
+                    var resp = await fetch(statusUrl, { method: 'GET' }).catch(function() { return null; });
                     if (resp && resp.ok) {
                         var data = await resp.json();
                         if (data && data.connected) {
@@ -3147,23 +3206,22 @@
         async function checkWhatsAppServerStatus(showUserToast) {
             var serverUrl = getWhatsAppServerUrl();
             var statusInfo = document.getElementById('wa-server-status-info');
-            if (statusInfo) statusInfo.innerHTML = '<span style="color: #0284c7;">جاري فحص الاتصال بالخادم...</span>';
+            if (statusInfo) statusInfo.innerHTML = '<span style="color: #0284c7;"><i class="fas fa-spinner fa-spin"></i> جاري فحص الاتصال بالخادم...</span>';
 
             try {
-                var resp = await fetch(serverUrl + '/status', { method: 'GET', signal: AbortSignal.timeout(5000) }).catch(function() {
-                    return fetch(serverUrl + '/api/status', { method: 'GET', signal: AbortSignal.timeout(5000) });
-                });
+                var statusUrl = buildWhatsAppApiUrl('/status');
+                var resp = await fetch(statusUrl, { method: 'GET', signal: AbortSignal.timeout(8000) }).catch(function() { return null; });
                 if (resp && resp.ok) {
                     var data = await resp.json();
                     if (data && data.connected) {
                         setWhatsAppConnectedUI(true, serverUrl);
-                        if (statusInfo) statusInfo.innerHTML = '<span style="color: #16a34a; font-weight: 700;">✅ متصل وجاهز للإرسال الآلي من رقمك المرتبط!</span>';
+                        if (statusInfo) statusInfo.innerHTML = '<span style="color: #16a34a; font-weight: 700;">✅ متصل وجاهز للإرسال الآلي من رقمك المرتبط! (معرف الجلسة: ' + getWhatsAppSessionId() + ')</span>';
                         if (showUserToast) showToast('✅ خادم الواتساب متصل بنجاح!', 'success');
                         return;
                     }
                 }
                 setWhatsAppConnectedUI(false, serverUrl, 'الخادم يعمل، ولكن غير مرتبط بواتساب');
-                if (statusInfo) statusInfo.innerHTML = '<span style="color: #f59e0b; font-weight: 700;">⚠️ الخادم يستجيب، ولكن لم يتم مسح رمز الـ QR بعد.</span>';
+                if (statusInfo) statusInfo.innerHTML = '<span style="color: #f59e0b; font-weight: 700;">⚠️ الخادم السحابي يستجيب، اضغط "ربط واتساب" لمسح رمز QR.</span>';
                 if (showUserToast) showToast('الخادم يعمل ولكن غير مرتبط بواتساب', 'warning');
             } catch (e) {
                 setWhatsAppConnectedUI(false, serverUrl, 'تعذر الاتصال بالخادم');
@@ -3176,9 +3234,8 @@
             var serverUrl = getWhatsAppServerUrl();
             if (waQrPollInterval) clearInterval(waQrPollInterval);
             try {
-                await fetch(serverUrl + '/logout', { method: 'POST' }).catch(function() {
-                    return fetch(serverUrl + '/api/logout', { method: 'POST' });
-                });
+                var logoutUrl = buildWhatsAppApiUrl('/logout');
+                await fetch(logoutUrl, { method: 'POST' }).catch(function() { return null; });
             } catch(e) {}
             setWhatsAppConnectedUI(false, serverUrl, 'تم تسجيل الخروج');
             showToast('تم تسجيل الخروج وفصل جلسة الواتساب', 'info');
@@ -3202,7 +3259,7 @@
                     indBadge.textContent = 'متصل (الأجهزة المرتبطة)';
                 }
                 if (qrTarget) {
-                    qrTarget.innerHTML = '<div style="color: #16a34a; padding: 2rem 1rem;"><i class="fas fa-check-circle fa-4x" style="color: #22c55e; margin-bottom: 1rem;"></i><h4 style="font-weight: 800; color: #15803d; margin-bottom: 0.5rem;">واتساب متصل بنجاح!</h4><p style="font-size: 0.88rem; color: #166534;">يمكنك الآن إرسال التقارير والرسائل مباشرة من رقمك المرتبط.</p></div>';
+                    qrTarget.innerHTML = '<div style="color: #16a34a; padding: 2rem 1rem;"><i class="fas fa-check-circle fa-4x" style="color: #22c55e; margin-bottom: 1rem;"></i><h4 style="font-weight: 800; color: #15803d; margin-bottom: 0.5rem;">واتساب متصل بنجاح!</h4><p style="font-size: 0.88rem; color: #166534;">جلسة الخادم السحابي نشطة ومعزولة لحسابك. يمكنك إرسال التقارير لجميع الطلاب مباشرة.</p></div>';
                 }
             } else {
                 if (badge) {
@@ -3216,7 +3273,7 @@
             }
         }
 
-        function applyWhatsAppModeUI() {
+                function applyWhatsAppModeUI() {
             var mode = (appData.settings && appData.settings.whatsappMode) ? appData.settings.whatsappMode : 'direct';
             var btnDirect = document.getElementById('wa-mode-direct-btn');
             var btnServer = document.getElementById('wa-mode-server-btn');
@@ -5734,15 +5791,14 @@
             window.print();
         }
 
-        function printCurrentPreview() {
-            // فتح نافذة الطباعة فوراً وبشكل متزامن داخل حدث النقر قبل أي تأخير لمنع حظرها
+        // دالة مشتركة وموحدة لفتح شاشة الطباعة وحفظ PDF مع الشريط العلوي الثابت للآيفون والكمبيوتر
+        function openPrintAndPdfWindow(fullHtml, printDelay) {
             var printWin = window.open('', '_blank');
             if (!printWin) {
-                showToast('يرجى السماح بالنوافذ المنبثقة (Popups) لعرض شاشة الطباعة', 'warning');
+                showToast('يرجى السماح بالنوافذ المنبثقة (Popups) لعرض شاشة الطباعة وحفظ PDF', 'warning');
                 return;
             }
 
-            var fullHtml = buildFullDocumentHTML(currentPreviewMode);
             try {
                 printWin.document.open();
                 printWin.document.write(fullHtml);
@@ -5755,11 +5811,20 @@
                     } catch (e) {
                         console.error('Print trigger error:', e);
                     }
-                }, 400);
+                }, printDelay || 300);
             } catch (err) {
-                console.error('Direct print failed:', err);
+                console.error('Direct print/pdf failed:', err);
                 showToast('تعذر فتح شاشة الطباعة، يرجى المحاولة مرة أخرى', 'danger');
             }
+        }
+
+        function printCurrentPreview() {
+            openPrintAndPdfWindow(buildFullDocumentHTML(currentPreviewMode), 300);
+        }
+
+        function savePreviewAsPDF() {
+            showToast('جاري فتح شاشة حفظ PDF...', 'info');
+            openPrintAndPdfWindow(buildFullDocumentHTML(currentPreviewMode), 300);
         }
 
         function printReport(mode) {
@@ -5768,15 +5833,32 @@
 
         function buildFullDocumentHTML(mode) {
             var content = buildReportHTML(mode);
+            var title = getReportDefaultFileName('', mode);
+
+            var topBarHtml = '<div class="print-preview-topbar" style="position: sticky; top: 0; z-index: 999999; background: #0f172a; color: #ffffff; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.4); font-family: \'Tajawal\', Tahoma, Arial, sans-serif; direction: rtl; gap: 12px; flex-wrap: wrap;">' +
+                '<div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">' +
+                '<button type="button" onclick="window.print()" style="background: #16a34a; color: #ffffff; border: none; padding: 9px 22px; border-radius: 8px; font-weight: 800; font-size: 15px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(22, 163, 74, 0.45); font-family: inherit;">' +
+                '<i class="fas fa-print"></i> 🖨️ طباعة / حفظ PDF' +
+                '</button>' +
+                '<span style="font-size: 13px; color: #94a3b8; font-weight: 600;">' +
+                '(في الآيفون: اختر مشاركة أعلى نافذة الطباعة لحفظه PDF)' +
+                '</span>' +
+                '</div>' +
+                '<button type="button" onclick="window.close()" style="background: #dc2626; color: #ffffff; border: none; padding: 9px 18px; border-radius: 8px; font-weight: 800; font-size: 15px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(220, 38, 38, 0.45); font-family: inherit;">' +
+                '✖ رجوع للبرنامج' +
+                '</button>' +
+                '</div>';
+
             return '<!DOCTYPE html>' +
                 '<html dir="rtl" lang="ar">' +
                 '<head>' +
                 '<meta charset="utf-8">' +
-                '<title>' + getReportDefaultFileName('', mode) + '</title>' +
+                '<title>' + title + '</title>' +
                 '<style>' +
                 '@page { size: A4 landscape; margin: 8mm; }' +
                 '* { box-sizing: border-box; margin: 0; padding: 0; font-family: "Tajawal", Tahoma, Arial, sans-serif; }' +
                 'body { direction: rtl; padding: 6mm 8mm; background: #fff; color: #000; }' +
+                '@media print { .print-preview-topbar, .print-hidden { display: none !important; } body { padding: 0 !important; margin: 0 !important; } }' +
                 'table.report-table { width: 100%; max-width: 100%; border-collapse: collapse; table-layout: auto; font-size: 11px; direction: rtl; text-align: center; box-sizing: border-box; }' +
                 'table.report-table th, table.report-table td { border: 1px solid #333; padding: 3px 2px; text-align: center; overflow: visible; font-size: 10.5px; vertical-align: middle; }' +
                 'table.report-table th { background-color: #f1f5f9; font-weight: bold; white-space: normal; word-break: normal; overflow: visible; text-overflow: clip; line-height: 1.25; -webkit-print-color-adjust: exact; print-color-adjust: exact; }' +
@@ -5787,6 +5869,7 @@
                 '</style>' +
                 '</head>' +
                 '<body>' +
+                topBarHtml +
                 content +
                 '</body>' +
                 '</html>';
@@ -6361,55 +6444,48 @@
             }
         }
 
-        function printArchiveCurrentPreview() {
-            if (!currentArchivePreviewItem) return;
+        function buildArchivedFullDocumentHTML(item, orientation) {
+            var title = (item && item.title) ? item.title : 'كشف_درجات_مؤرشف';
+            var topBarHtml = '<div class="print-preview-topbar" style="position: sticky; top: 0; z-index: 999999; background: #0f172a; color: #ffffff; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.4); font-family: \'Tajawal\', Tahoma, Arial, sans-serif; direction: rtl; gap: 12px; flex-wrap: wrap;">' +
+                '<div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">' +
+                '<button type="button" onclick="window.print()" style="background: #16a34a; color: #ffffff; border: none; padding: 9px 22px; border-radius: 8px; font-weight: 800; font-size: 15px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(22, 163, 74, 0.45); font-family: inherit;">' +
+                '<i class="fas fa-print"></i> 🖨️ طباعة / حفظ PDF' +
+                '</button>' +
+                '<span style="font-size: 13px; color: #94a3b8; font-weight: 600;">' +
+                '(في الآيفون: اختر مشاركة أعلى نافذة الطباعة لحفظه PDF)' +
+                '</span>' +
+                '</div>' +
+                '<button type="button" onclick="window.close()" style="background: #dc2626; color: #ffffff; border: none; padding: 9px 18px; border-radius: 8px; font-weight: 800; font-size: 15px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(220, 38, 38, 0.45); font-family: inherit;">' +
+                '✖ رجوع للبرنامج' +
+                '</button>' +
+                '</div>';
 
-            // فتح نافذة الطباعة فوراً وبشكل متزامن داخل حدث النقر لمنع حظرها
-            var printWin = window.open('', '_blank');
-            if (!printWin) {
-                showToast('يرجى السماح بالنوافذ المنبثقة (Popups) لعرض شاشة الطباعة', 'warning');
-                return;
-            }
-
-            var defaultName = currentArchivePreviewItem.title || 'كشف_درجات_مؤرشف';
-            var fullHtml = '<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>' +
-                defaultName +
+            return '<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>' +
+                title +
                 '</title><style>' +
-                '@page { size: A4 ' + (currentArchiveOrientation || 'landscape') + '; margin: 8mm; } ' +
-                '* { box-sizing: border-box; margin: 0; padding: 0; font-family: "Tajawal", Tahoma, Arial, sans-serif; } ' +
+                '@page { size: A4 ' + (orientation || 'landscape') + '; margin: 8mm; } ' +
+                '* { box-sizing: border-box; margin: 0; padding: 0; font-family: "Tajawal", Tahoma, sans-serif; } ' +
                 'body { direction: rtl; padding: 6mm 8mm; background: #fff; color: #000; } ' +
+                '@media print { .print-preview-topbar, .print-hidden { display: none !important; } body { padding: 0 !important; margin: 0 !important; } } ' +
                 'table.report-table { width: 100%; border-collapse: collapse; font-size: 11px; text-align: center; } ' +
                 'table.report-table th, table.report-table td { border: 1px solid #333; padding: 4px 2px; } ' +
                 'table.report-table th { background: #f1f5f9; font-weight: bold; -webkit-print-color-adjust: exact; print-color-adjust: exact; } ' +
                 '@media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }' +
                 '</style></head><body>' +
-                buildArchivedReportHTML(currentArchivePreviewItem, currentArchiveOrientation) +
+                topBarHtml +
+                buildArchivedReportHTML(item, orientation) +
                 '</body></html>';
-
-            try {
-                printWin.document.open();
-                printWin.document.write(fullHtml);
-                printWin.document.close();
-                printWin.focus();
-                setTimeout(function() {
-                    try {
-                        printWin.focus();
-                        printWin.print();
-                    } catch (e) {
-                        console.error('Archive print trigger error:', e);
-                    }
-                }, 400);
-            } catch (err) {
-                console.error('Archive print failed:', err);
-                showToast('تعذر فتح شاشة الطباعة، يرجى المحاولة مرة أخرى', 'danger');
-            }
         }
 
-        async function saveArchivePreviewAsPDF() {
+        function printArchiveCurrentPreview() {
             if (!currentArchivePreviewItem) return;
-            var defaultName = (currentArchivePreviewItem.title ? currentArchivePreviewItem.title.replace(/[\\/:*?"<>|]/g, '_') : 'archive_report') + '.pdf';
-            var sheetEl = document.getElementById('archive-preview-sheet');
-            await exportElementToPDF(sheetEl, defaultName, currentArchiveOrientation || 'landscape');
+            openPrintAndPdfWindow(buildArchivedFullDocumentHTML(currentArchivePreviewItem, currentArchiveOrientation), 300);
+        }
+
+        function saveArchivePreviewAsPDF() {
+            if (!currentArchivePreviewItem) return;
+            showToast('جاري فتح شاشة حفظ PDF للأرشيف...', 'info');
+            openPrintAndPdfWindow(buildArchivedFullDocumentHTML(currentArchivePreviewItem, currentArchiveOrientation), 300);
         }
 
         function closeArchivePrintPreviewModal() {
