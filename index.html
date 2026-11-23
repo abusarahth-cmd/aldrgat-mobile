@@ -1050,7 +1050,7 @@
     <aside class="sidebar">
         <div class="sidebar-header">
             <h2><i class="fas fa-graduation-cap"></i> سجل الدرجات الذكي</h2>
-            <p id="sidebar-subtitle">نظام متابعة ورصد الدرجات (v9.4)</p>
+            <p id="sidebar-subtitle">نظام متابعة ورصد الدرجات (v9.5)</p>
         </div>
         <ul class="nav-menu">
             <li class="nav-item active" onclick="switchTab('dashboard', this)">
@@ -1103,7 +1103,7 @@
             </div>
             <div style="display: flex; align-items: center; gap: 0.75rem;">
                 <div id="licenseHeaderBadgeContainer" style="display: flex; align-items: center;"></div>
-                <span id="app-version-badge" class="badge" style="background: #e2e8f0; color: #1e293b; font-size: 0.8rem; font-weight: 800; border: 1.5px solid #cbd5e1; padding: 4px 10px; border-radius: 9999px;">v9.4</span>
+                <span id="app-version-badge" class="badge" style="background: #e2e8f0; color: #1e293b; font-size: 0.8rem; font-weight: 800; border: 1.5px solid #cbd5e1; padding: 4px 10px; border-radius: 9999px;">v9.5</span>
                 <span id="whatsapp-status-badge" class="badge badge-success"><i class="fab fa-whatsapp"></i> واتساب مفعل</span>
                 <div style="text-align: left;">
                     <div id="top-teacher-name" style="font-weight: 700; font-size: 0.9rem;">المعلم: ---</div>
@@ -1570,6 +1570,59 @@
                         <p><strong>حالة الترخيص:</strong> <span id="sub-license-status">فترة تجريبية مجانية لكافة مميزات البرنامج</span></p>
                         <p><strong>الأيام المتبقية:</strong> <span id="sub-remaining-days" style="color: var(--primary); font-weight: bold;">5 أيام</span></p>
                         <p><strong>رسوم تفعيل النسخة الدائمة مدى الحياة:</strong> <span style="color: #0f766e; font-weight: bold;">70 ريالاً سعودياً (تُدفع لمرة واحدة فقط)</span></p>
+                    </div>
+
+                    <!-- بطاقة بيانات التحويل البنكي الرسمية -->
+                    <div style="background: #ffffff; border: 1.5px solid #0f766e; border-radius: 14px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 4px 14px rgba(15, 118, 110, 0.08);">
+                        <!-- 1. ترويسة البطاقة -->
+                        <div style="display: flex; align-items: flex-start; gap: 14px; margin-bottom: 1rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.85rem;">
+                            <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(15, 118, 110, 0.1); color: #0f766e; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; flex-shrink: 0;">
+                                <i class="fas fa-university"></i>
+                            </div>
+                            <div style="flex-grow: 1;">
+                                <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f766e; margin: 0 0 4px 0;">بيانات التحويل البنكي الرسمية</h3>
+                                <div style="font-size: 0.95rem; font-weight: 700; color: #475569; margin-bottom: 6px;">مصرف الراجحي - Al Rajhi Bank</div>
+                                <p style="font-size: 0.88rem; line-height: 1.6; color: #64748b; margin: 0;">
+                                    يسرنا انضمامكم لنظام إدارة الدرجات والمتابعة الرقمي. للحصول على الترخيص الكامل وتفعيل كافة ميزات النظام المتقدمة، يرجى التحويل إلى حسابنا المعتمد لدى مصرف الراجحي:
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- 2. صندوق رقم الحساب -->
+                        <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; padding: 12px 14px; margin-bottom: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <span style="font-size: 0.9rem; font-weight: 700; color: #334155;">
+                                    # رقم الحساب (Account Number):
+                                </span>
+                                <button type="button" class="btn btn-outline" style="padding: 5px 12px; font-size: 0.82rem; font-weight: 700; background: #ffffff; border-color: #cbd5e1; color: #1e293b; border-radius: 6px; display: inline-flex; align-items: center; gap: 5px; cursor: pointer;" onclick="copyBankValue('372000010006080092153', this, 'نسخ الحساب'); if(typeof showToast==='function') showToast('تم نسخ رقم الحساب بنجاح!', 'success');">
+                                    <i class="fas fa-copy"></i> <span>نسخ الحساب</span>
+                                </button>
+                            </div>
+                            <div style="font-family: monospace; font-size: 1.25rem; font-weight: 900; letter-spacing: 1.5px; color: #0f172a; direction: ltr; text-align: left; background: #ffffff; padding: 8px 12px; border-radius: 6px; border: 1px solid #e2e8f0; user-select: all;">
+                                372000010006080092153
+                            </div>
+                        </div>
+
+                        <!-- 3. صندوق رقم الآيبان -->
+                        <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; padding: 12px 14px; margin-bottom: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <span style="font-size: 0.9rem; font-weight: 700; color: #334155;">
+                                    رقم الآيبان (IBAN):
+                                </span>
+                                <button type="button" class="btn" style="padding: 5px 12px; font-size: 0.82rem; font-weight: 700; background: #dcfce7; border: 1px solid #86efac; color: #166534; border-radius: 6px; display: inline-flex; align-items: center; gap: 5px; cursor: pointer;" onclick="copyBankValue('SA8580000372608010092153', this, 'نسخ الآيبان'); if(typeof showToast==='function') showToast('تم نسخ رقم الآيبان بنجاح!', 'success');">
+                                    <i class="fas fa-copy"></i> <span>نسخ الآيبان</span>
+                                </button>
+                            </div>
+                            <div style="font-family: monospace; font-size: 1.2rem; font-weight: 900; letter-spacing: 1.5px; color: #0f172a; direction: ltr; text-align: left; background: #ffffff; padding: 8px 12px; border-radius: 6px; border: 1px solid #e2e8f0; user-select: all;">
+                                SA8580000372608010092153
+                            </div>
+                        </div>
+
+                        <!-- 4. شريط الرسوم في الأسفل -->
+                        <div style="background: #fefce8; border: 1.5px solid #fde047; border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; gap: 8px; color: #854d0e; font-size: 0.92rem; font-weight: 700;">
+                            <i class="fas fa-info-circle" style="color: #ca8a04; font-size: 1.15rem; flex-shrink: 0;"></i>
+                            <span>رسوم الاشتراك هي 70 ريال سعودي فقط لكل مستخدم للبرنامج.</span>
+                        </div>
                     </div>
 
                     <!-- صندوق إشعار وسداد رسوم الاشتراك عبر الواتساب -->
