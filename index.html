@@ -1050,7 +1050,7 @@
     <aside class="sidebar">
         <div class="sidebar-header">
             <h2><i class="fas fa-graduation-cap"></i> سجل الدرجات الذكي</h2>
-            <p id="sidebar-subtitle">نظام متابعة ورصد الدرجات (v9.3)</p>
+            <p id="sidebar-subtitle">نظام متابعة ورصد الدرجات (v9.4)</p>
         </div>
         <ul class="nav-menu">
             <li class="nav-item active" onclick="switchTab('dashboard', this)">
@@ -1103,7 +1103,7 @@
             </div>
             <div style="display: flex; align-items: center; gap: 0.75rem;">
                 <div id="licenseHeaderBadgeContainer" style="display: flex; align-items: center;"></div>
-                <span id="app-version-badge" class="badge" style="background: #e2e8f0; color: #1e293b; font-size: 0.8rem; font-weight: 800; border: 1.5px solid #cbd5e1; padding: 4px 10px; border-radius: 9999px;">v9.3</span>
+                <span id="app-version-badge" class="badge" style="background: #e2e8f0; color: #1e293b; font-size: 0.8rem; font-weight: 800; border: 1.5px solid #cbd5e1; padding: 4px 10px; border-radius: 9999px;">v9.4</span>
                 <span id="whatsapp-status-badge" class="badge badge-success"><i class="fab fa-whatsapp"></i> واتساب مفعل</span>
                 <div style="text-align: left;">
                     <div id="top-teacher-name" style="font-weight: 700; font-size: 0.9rem;">المعلم: ---</div>
@@ -5893,7 +5893,7 @@
             });
         }
 
-        // توليد ملف PDF ومشاركته على أجهزة iOS/iPadOS باستخدام jsPDF + AutoTable ورسم الجدول برمجياً (v9.3)
+        // توليد ملف PDF ومشاركته على أجهزة iOS/iPadOS باستخدام jsPDF + AutoTable ورسم الجدول برمجياً (v9.4)
         async function generateAndSharePdf() {
             const visibleTables = Array.from(document.querySelectorAll('table')).filter(t => t.offsetParent !== null);
             const table = visibleTables[0] || document.querySelector('table');
@@ -6035,25 +6035,57 @@
             });
 
             // في المنتصف (x = 148.5, align: 'center')
-            let hasLogo = false;
-            if (logoSrc && !logoSrc.includes('svg')) {
+            let logoDrawn = false;
+            const previewImg = container ? (container.querySelector('div[style*="text-align:center"] img, .report-header img') || container.querySelector('img')) : null;
+
+            if (previewImg && previewImg.src && !previewImg.src.includes('svg') && !previewImg.src.includes('تعليم')) {
                 try {
-                    doc.addImage(logoSrc, 'PNG', 141.5, 4.5, 14, 14);
-                    hasLogo = true;
-                } catch(e) {}
+                    let imgData = previewImg.src;
+                    if (!imgData.startsWith('data:image/png') && !imgData.startsWith('data:image/jpeg')) {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = previewImg.naturalWidth || 64;
+                        canvas.height = previewImg.naturalHeight || 64;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(previewImg, 0, 0, canvas.width, canvas.height);
+                        imgData = canvas.toDataURL('image/png');
+                    }
+                    doc.addImage(imgData, 'PNG', 142.5, 8, 12, 12);
+                    logoDrawn = true;
+                } catch(e) {
+                    console.warn('Canvas conversion/addImage error:', e);
+                }
             }
 
-            doc.setFontSize(13);
-            doc.text(centerTitle, 148.5, hasLogo ? 22.5 : 15, { align: 'center' });
-            if (centerSub) {
-                doc.setFontSize(9.5);
-                doc.text(centerSub, 148.5, hasLogo ? 27.5 : 21, { align: 'center' });
+            if (!logoDrawn) {
+                // رسم الشعار الافتراضي (مربع مستدير الزوايا أخضر داكن مع كلمة "تعليم" بالأبيض)
+                doc.setFillColor(15, 76, 76);
+                doc.roundedRect(142.5, 8, 12, 12, 2, 2, 'F');
+                doc.setFontSize(8);
+                if (fontBase64) doc.setFont('Amiri');
+                doc.setTextColor(255, 255, 255);
+                doc.text('تعليم', 148.5, 15.5, { align: 'center' });
+                doc.setTextColor(0, 0, 0);
             }
+
+            // إظهار عنوان الكشف وسطر الصف والفصل والفترة تحت الشعار في الكليشة
+            doc.setFontSize(13);
+            if (fontBase64) doc.setFont('Amiri');
+            doc.text(centerTitle, 148.5, 25, { align: 'center' });
+
+            if (!centerSub) {
+                const selectedGrade = document.getElementById('entry-grade-select') ? document.getElementById('entry-grade-select').value : '';
+                const selectedClass = document.getElementById('entry-class-select') ? document.getElementById('entry-class-select').value : '';
+                const tp = (typeof getSelectedTermAndPeriod === 'function') ? getSelectedTermAndPeriod() : { term: 'الفصل الدراسي الأول', period: 'الفترة الأولى' };
+                centerSub = 'الصف: ' + (selectedGrade || 'غير محدد') + ' | الفصل: ' + (selectedClass ? 'فصل ' + selectedClass : '1') + ' | ' + (tp.term || '') + ' | ' + (tp.period || '');
+            }
+
+            doc.setFontSize(10);
+            doc.text(centerSub, 148.5, 30, { align: 'center' });
 
             // رسم خط أفقي فاصل أسفل الكليشة
             doc.setDrawColor(80, 80, 80);
             doc.setLineWidth(0.3);
-            doc.line(15, 32, 282, 32);
+            doc.line(15, 33, 282, 33);
 
             // 2. بناء مصفوفة الرؤوس الحقيقية مع مراعاة rowspan و colspan (v9.2)
             const theadRows = Array.from(table.querySelectorAll('thead tr'));
@@ -6089,11 +6121,11 @@
                 .filter(tr => tr.offsetParent !== null)
                 .map(tr => Array.from(tr.children).map(td => td.innerText.trim()).reverse());
 
-            // توسيع عمود اسم الطالب (الذي يحتوي عنوانه على كلمة "اسم")
+            // توسيع وتوسيط عمود اسم الطالب (الذي يحتوي عنوانه على كلمة "اسم")
             const nameColIdx = headers.findIndex(h => h.includes('اسم'));
             const colStyles = {};
             if (nameColIdx !== -1) {
-                colStyles[nameColIdx] = { cellWidth: 55, halign: 'right' };
+                colStyles[nameColIdx] = { cellWidth: 55, halign: 'center' };
             }
 
             doc.autoTable({

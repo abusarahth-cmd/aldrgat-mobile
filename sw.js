@@ -1,8 +1,8 @@
 /**
- * Service Worker - سجل الدرجات الذكي (PWA Offline Cache - v9.3)
+ * Service Worker - سجل الدرجات الذكي (PWA Offline Cache - v9.4)
  */
 
-const CACHE_NAME = 'grades-v9.3';
+const CACHE_NAME = 'grades-v9.4';
 
 const STATIC_ASSETS = [
   './',
