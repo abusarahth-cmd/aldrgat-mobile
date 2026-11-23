@@ -1,8 +1,8 @@
 /**
- * Service Worker - سجل الدرجات الذكي (PWA Offline Cache)
+ * Service Worker - سجل الدرجات الذكي (PWA Offline Cache - v9.3)
  */
 
-const CACHE_NAME = 'grades-v9.2';
+const CACHE_NAME = 'grades-v9.3';
 
 const STATIC_ASSETS = [
   './',
@@ -24,8 +24,9 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// 2. التفعيل وإزالة النسخ القديمة من الكاش
+// 2. التفعيل وإزالة النسخ القديمة من الكاش فوراً وتنفيذ clients.claim()
 self.addEventListener('activate', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
@@ -48,7 +49,7 @@ self.addEventListener('message', (event) => {
   }
 });
 
-// 3. إدارة الطلبات: تمرير الروابط الخارجية للشبكة مباشرة دون كاش (NetworkOnly)
+// 3. إدارة الطلبات: استراتيجية Network First للملفات الرئيسية لضمان التحديث التلقائي
 self.addEventListener('fetch', (event) => {
   const req = event.request;
 
@@ -61,6 +62,34 @@ self.addEventListener('fetch', (event) => {
     return; // تمرير مباشر للشبكة دون اعتراض من الكاش
   }
 
+  // استراتيجية Network First للملفات الرئيسية (HTML و Manifest و التنقل) للتحديث التلقائي الفوري
+  const isMainAsset = req.mode === 'navigate' ||
+                      url.pathname.endsWith('/index.html') ||
+                      url.pathname.endsWith('/') ||
+                      url.pathname.endsWith('/manifest.json');
+
+  if (isMainAsset) {
+    event.respondWith(
+      fetch(req)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(req, responseToCache);
+            });
+          }
+          return networkResponse;
+        })
+        .catch(() => {
+          return caches.match(req).then((cached) => {
+            return cached || (req.headers.get('accept') && req.headers.get('accept').includes('text/html') ? caches.match('./index.html') : null);
+          });
+        })
+    );
+    return;
+  }
+
+  // بقية الملفات الثابتة (أيقونات، مكتبات محلية): Cache First مع التخزين في الخلفية
   event.respondWith(
     caches.match(req).then((cachedResponse) => {
       if (cachedResponse) {

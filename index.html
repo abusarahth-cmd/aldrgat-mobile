@@ -33,8 +33,11 @@
                     console.log('Persistent storage enabled:', persisted);
                 }).catch(function(e) {});
             }
-            // تسجيل Service Worker للعمل بالكامل بدون إنترنت (Offline Cache First)
+            // تسجيل Service Worker للعمل بالكامل بدون إنترنت وتحديث التطبيق تلقائياً (v9.3)
             if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.addEventListener('controllerchange', function() {
+                    window.location.reload();
+                });
                 window.addEventListener('load', function() {
                     navigator.serviceWorker.register('./sw.js').then(function(reg) {
                         if (reg.waiting) {
@@ -1047,7 +1050,7 @@
     <aside class="sidebar">
         <div class="sidebar-header">
             <h2><i class="fas fa-graduation-cap"></i> سجل الدرجات الذكي</h2>
-            <p id="sidebar-subtitle">نظام متابعة ورصد الدرجات (v9.2)</p>
+            <p id="sidebar-subtitle">نظام متابعة ورصد الدرجات (v9.3)</p>
         </div>
         <ul class="nav-menu">
             <li class="nav-item active" onclick="switchTab('dashboard', this)">
@@ -1100,7 +1103,7 @@
             </div>
             <div style="display: flex; align-items: center; gap: 0.75rem;">
                 <div id="licenseHeaderBadgeContainer" style="display: flex; align-items: center;"></div>
-                <span id="app-version-badge" class="badge" style="background: #e2e8f0; color: #1e293b; font-size: 0.8rem; font-weight: 800; border: 1.5px solid #cbd5e1; padding: 4px 10px; border-radius: 9999px;">v9.2</span>
+                <span id="app-version-badge" class="badge" style="background: #e2e8f0; color: #1e293b; font-size: 0.8rem; font-weight: 800; border: 1.5px solid #cbd5e1; padding: 4px 10px; border-radius: 9999px;">v9.3</span>
                 <span id="whatsapp-status-badge" class="badge badge-success"><i class="fab fa-whatsapp"></i> واتساب مفعل</span>
                 <div style="text-align: left;">
                     <div id="top-teacher-name" style="font-weight: 700; font-size: 0.9rem;">المعلم: ---</div>
@@ -5890,7 +5893,7 @@
             });
         }
 
-        // توليد ملف PDF ومشاركته على أجهزة iOS/iPadOS باستخدام jsPDF + AutoTable ورسم الجدول برمجياً (v9.2)
+        // توليد ملف PDF ومشاركته على أجهزة iOS/iPadOS باستخدام jsPDF + AutoTable ورسم الجدول برمجياً (v9.3)
         async function generateAndSharePdf() {
             const visibleTables = Array.from(document.querySelectorAll('table')).filter(t => t.offsetParent !== null);
             const table = visibleTables[0] || document.querySelector('table');
@@ -5967,9 +5970,90 @@
                 titleText = 'كشف الدرجات';
             }
 
-            doc.setFontSize(15);
+            // استخراج نصوص وبيانات الكليشة والتذييل (v9.3)
+            const s = (typeof appData !== 'undefined' && appData.settings) ? appData.settings : {};
+            const isGirls = s.gender === 'girls';
+
+            let rightLines = [];
+            let leftLines = [];
+            let centerTitle = titleText || 'كشف الدرجات';
+            let centerSub = '';
+            let logoSrc = s.logo || '';
+
+            if (container) {
+                const rBox = container.querySelector('div[style*="text-align:right"]') || container.querySelector('.report-header-right');
+                if (rBox) {
+                    rightLines = Array.from(rBox.querySelectorAll('p')).map(p => p.innerText.trim()).filter(Boolean);
+                }
+                const lBox = container.querySelector('div[style*="text-align:left"]') || container.querySelector('.report-header-left');
+                if (lBox) {
+                    leftLines = Array.from(lBox.querySelectorAll('p')).map(p => p.innerText.trim()).filter(Boolean);
+                }
+                const cBox = container.querySelector('div[style*="text-align:center"]') || container.querySelector('.report-header-center');
+                if (cBox) {
+                    const h = cBox.querySelector('h1, h2, h3, h4');
+                    if (h) centerTitle = h.innerText.trim();
+                    const p = cBox.querySelector('p');
+                    if (p) centerSub = p.innerText.trim();
+                    const img = cBox.querySelector('img');
+                    if (img && img.src) logoSrc = img.src;
+                }
+            }
+
+            if (!rightLines.length) {
+                rightLines = [
+                    'المملكة العربية السعودية',
+                    s.eduDept || 'وزارة التعليم',
+                    'المدرسة: ' + (s.schoolName || '....................')
+                ];
+            }
+
+            if (!leftLines.length) {
+                leftLines = [
+                    (isGirls ? 'المعلمة: ' : 'المعلم: ') + (s.teacherName || '....................'),
+                    (isGirls ? 'المديرة: ' : 'المدير: ') + (s.principalName || '....................')
+                ];
+            }
+
+            // 1. رسم الكليشة العلوية (فوق الجدول مباشرة)
             if (fontBase64) doc.setFont('Amiri');
-            doc.text(titleText, 148.5, 14, { align: 'center' });
+
+            // على اليمين (x = 282, align: 'right')
+            let curRightY = 9;
+            rightLines.forEach((line, idx) => {
+                doc.setFontSize(idx === 0 ? 9.5 : 8.5);
+                doc.text(line, 282, curRightY, { align: 'right' });
+                curRightY += 5;
+            });
+
+            // على اليسار (x = 15, align: 'left')
+            let curLeftY = 11;
+            leftLines.forEach(line => {
+                doc.setFontSize(8.5);
+                doc.text(line, 15, curLeftY, { align: 'left' });
+                curLeftY += 5.5;
+            });
+
+            // في المنتصف (x = 148.5, align: 'center')
+            let hasLogo = false;
+            if (logoSrc && !logoSrc.includes('svg')) {
+                try {
+                    doc.addImage(logoSrc, 'PNG', 141.5, 4.5, 14, 14);
+                    hasLogo = true;
+                } catch(e) {}
+            }
+
+            doc.setFontSize(13);
+            doc.text(centerTitle, 148.5, hasLogo ? 22.5 : 15, { align: 'center' });
+            if (centerSub) {
+                doc.setFontSize(9.5);
+                doc.text(centerSub, 148.5, hasLogo ? 27.5 : 21, { align: 'center' });
+            }
+
+            // رسم خط أفقي فاصل أسفل الكليشة
+            doc.setDrawColor(80, 80, 80);
+            doc.setLineWidth(0.3);
+            doc.line(15, 32, 282, 32);
 
             // 2. بناء مصفوفة الرؤوس الحقيقية مع مراعاة rowspan و colspan (v9.2)
             const theadRows = Array.from(table.querySelectorAll('thead tr'));
@@ -6015,7 +6099,7 @@
             doc.autoTable({
                 head: headers.length ? [headers] : undefined,
                 body: rows,
-                startY: 20,
+                startY: 36,
                 styles: {
                     font: fontBase64 ? 'Amiri' : undefined,
                     fontStyle: 'normal',
@@ -6035,6 +6119,31 @@
                 columnStyles: colStyles,
                 theme: 'grid'
             });
+
+            // 3. التذييل السفلي (بعد انتهاء الجدول عبر doc.lastAutoTable.finalY + 10)
+            const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : 175;
+            let footerY = finalY;
+            if (footerY > 190) {
+                doc.addPage();
+                footerY = 25;
+            }
+
+            doc.setFontSize(9.5);
+            if (fontBase64) doc.setFont('Amiri');
+
+            const teacherName = s.teacherName || '....................';
+            const principalName = s.principalName || '....................';
+
+            // على اليمين (x = 282, align: 'right')
+            doc.text((isGirls ? 'معلمة المادة: ' : 'معلم المادة: ') + teacherName, 282, footerY, { align: 'right' });
+            doc.text('التوقيع: ....................', 282, footerY + 7, { align: 'right' });
+
+            // في الوسط (ختم المدرسة)
+            doc.text('ختم المدرسة', 148.5, footerY + 3, { align: 'center' });
+
+            // على اليسار (x = 15, align: 'left')
+            doc.text((isGirls ? 'مديرة المدرسة: ' : 'مدير المدرسة: ') + principalName, 15, footerY, { align: 'left' });
+            doc.text('التوقيع: ....................', 15, footerY + 7, { align: 'left' });
 
             const pdfBlob = doc.output('blob');
             const pdfFile = new File([pdfBlob], 'كشف_الدرجات.pdf', { type: 'application/pdf' });
