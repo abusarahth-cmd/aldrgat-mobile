@@ -1082,7 +1082,7 @@
     <aside class="sidebar">
         <div class="sidebar-header">
             <h2><i class="fas fa-graduation-cap"></i> سجل الدرجات الذكي</h2>
-            <p id="sidebar-subtitle">نظام متابعة ورصد الدرجات (v9.6)</p>
+            <p id="sidebar-subtitle">نظام متابعة ورصد الدرجات (v9.7)</p>
         </div>
         <ul class="nav-menu">
             <li class="nav-item active" onclick="switchTab('dashboard', this)">
@@ -1135,7 +1135,7 @@
             </div>
             <div style="display: flex; align-items: center; gap: 0.75rem;">
                 <div id="licenseHeaderBadgeContainer" style="display: flex; align-items: center;"></div>
-                <span id="app-version-badge" class="badge" style="background: #e2e8f0; color: #1e293b; font-size: 0.8rem; font-weight: 800; border: 1.5px solid #cbd5e1; padding: 4px 10px; border-radius: 9999px;">v9.6</span>
+                <span id="app-version-badge" class="badge" style="background: #e2e8f0; color: #1e293b; font-size: 0.8rem; font-weight: 800; border: 1.5px solid #cbd5e1; padding: 4px 10px; border-radius: 9999px;">v9.7</span>
                 <span id="whatsapp-status-badge" class="badge badge-success"><i class="fab fa-whatsapp"></i> واتساب مفعل</span>
                 <div style="text-align: left;">
                     <div id="top-teacher-name" style="font-weight: 700; font-size: 0.9rem;">المعلم: ---</div>
@@ -6304,25 +6304,25 @@
 
             try {
                 var canvas = await html2canvas(container, {
-                    scale: 2.5,
+                    scale: 1.8,
                     useCORS: true,
                     backgroundColor: '#ffffff',
                     width: 794
                 });
 
-                var pngBlob = await new Promise(function(resolve) {
-                    canvas.toBlob(function(b) { resolve(b); }, 'image/png', 0.95);
+                var jpgBlob = await new Promise(function(resolve) {
+                    canvas.toBlob(function(b) { resolve(b); }, 'image/jpeg', 0.85);
                 });
 
-                if (!pngBlob) {
+                if (!jpgBlob) {
                     throw new Error('فشل إنشاء صورة التقرير');
                 }
 
-                var pngFile = new File([pngBlob], 'تقرير_الدرجات.png', { type: 'image/png' });
+                var jpgFile = new File([jpgBlob], 'report.jpg', { type: 'image/jpeg' });
 
-                if (navigator.canShare && navigator.canShare({ files: [pngFile] })) {
+                if (navigator.canShare && navigator.canShare({ files: [jpgFile] })) {
                     await navigator.share({
-                        files: [pngFile],
+                        files: [jpgFile],
                         title: 'طباعة كشف الدرجات'
                     });
                     if (typeof showToast === 'function') {
@@ -6330,8 +6330,8 @@
                     }
                 } else {
                     var a = document.createElement('a');
-                    a.href = URL.createObjectURL(pngBlob);
-                    a.download = 'تقرير_الدرجات.png';
+                    a.href = URL.createObjectURL(jpgBlob);
+                    a.download = 'report.jpg';
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
