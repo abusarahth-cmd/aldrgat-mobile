@@ -1082,7 +1082,7 @@
     <aside class="sidebar">
         <div class="sidebar-header">
             <h2><i class="fas fa-graduation-cap"></i> سجل الدرجات الذكي</h2>
-            <p id="sidebar-subtitle">نظام متابعة ورصد الدرجات (v9.7)</p>
+            <p id="sidebar-subtitle">نظام متابعة ورصد الدرجات (v9.8)</p>
         </div>
         <ul class="nav-menu">
             <li class="nav-item active" onclick="switchTab('dashboard', this)">
@@ -1133,9 +1133,11 @@
                     <p id="top-edu-dept" style="font-size: 0.8rem; color: var(--text-muted);">إدارة التعليم - القسم: بنين</p>
                 </div>
             </div>
-            <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                <span id="auto-save-topbar-badge" class="badge" style="display: none; background: #dcfce7; color: #166534; font-size: 0.8rem; font-weight: 700; border: 1.5px solid #86efac; padding: 4px 10px; border-radius: 9999px;"><i class="fas fa-shield-alt"></i> 🟢 محمي: حفظ تلقائي</span>
+                <button type="button" class="btn btn-outline" onclick="showWhatsNewModal()" title="دليل درع حماية البيانات الدائم" style="padding: 3px 9px; font-size: 0.78rem; border-radius: 9999px; border-color: #0284c7; color: #0284c7; display: inline-flex; align-items: center; gap: 4px; font-weight: 700; background: #f0f9ff;"><i class="fas fa-shield-alt" style="color: #0284c7;"></i> <span>دليل الحماية</span></button>
                 <div id="licenseHeaderBadgeContainer" style="display: flex; align-items: center;"></div>
-                <span id="app-version-badge" class="badge" style="background: #e2e8f0; color: #1e293b; font-size: 0.8rem; font-weight: 800; border: 1.5px solid #cbd5e1; padding: 4px 10px; border-radius: 9999px;">v9.7</span>
+                <span id="app-version-badge" class="badge" style="background: #e2e8f0; color: #1e293b; font-size: 0.8rem; font-weight: 800; border: 1.5px solid #cbd5e1; padding: 4px 10px; border-radius: 9999px;">v9.8</span>
                 <span id="whatsapp-status-badge" class="badge badge-success"><i class="fab fa-whatsapp"></i> واتساب مفعل</span>
                 <div style="text-align: left;">
                     <div id="top-teacher-name" style="font-weight: 700; font-size: 0.9rem;">المعلم: ---</div>
@@ -1376,19 +1378,55 @@
                 </div>
 
                 <div class="card" style="margin-top: 1.25rem;">
-                    <div class="card-title" style="display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem; color: var(--secondary);">
-                        <i class="fas fa-database" style="color: #0f766e;"></i>
-                        <span>💾 النسخ الاحتياطي واستعادة البيانات</span>
-                    </div>
-                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.25rem; line-height: 1.7;">
-                        تتيح لك هذه الميزة تصدير نسخة احتياطية شاملة لجميع بيانات البرنامج (كشوف الطلاب، الدرجات المرصودة، المواد، الأرشيف، والإعدادات لكافة المراحل والأقسام) في ملف واحد منظم، مع إمكانية استعادتها بالكامل في أي وقت بكل أمان.
-                    </p>
-                    <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
-                        <button type="button" id="btn-export-full-backup" class="btn btn-success" style="padding: 0.65rem 1.35rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.95rem; background: #059669; border-color: #047857; color: #fff;">
-                            <i class="fas fa-file-export"></i> تصدير نسخة احتياطية شاملة
+                    <div class="card-title" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; font-size: 1.1rem; color: var(--secondary);">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-shield-alt" style="color: #0f766e;"></i>
+                            <span>💾 النسخ الاحتياطي ودرع حماية البيانات الدائم</span>
+                        </div>
+                        <button type="button" class="btn btn-outline" onclick="showWhatsNewModal()" style="padding: 0.35rem 0.75rem; font-size: 0.82rem; font-weight: 700; border-color: #0f766e; color: #0f766e; display: inline-flex; align-items: center; gap: 0.35rem; border-radius: 8px;">
+                            <i class="fas fa-question-circle"></i> دليل الحماية والربط
                         </button>
-                        <button type="button" id="btn-trigger-import-backup" class="btn btn-warning" style="padding: 0.65rem 1.35rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.95rem; background: #d97706; border-color: #b45309; color: #fff;">
-                            <i class="fas fa-file-import"></i> استعادة نسخة احتياطية
+                    </div>
+
+                    <!-- صندوق حالة الحفظ التلقائي النشط -->
+                    <div id="auto-save-status-box" style="display: none; margin: 1rem 0; padding: 0.85rem 1.1rem; border-radius: 10px; background: rgba(16, 185, 129, 0.08); border: 1.5px solid #10b981; color: #065f46; font-size: 0.9rem; font-weight: 600; line-height: 1.6;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+                            <div style="display: flex; align-items: center; gap: 0.6rem;">
+                                <i class="fas fa-check-circle" style="color: #10b981; font-size: 1.2rem;"></i>
+                                <span>🟢 درع الحماية نشط: يتم الحفظ التلقائي المباشر في: <strong id="auto-save-filename" style="color: #047857; text-decoration: underline;">ملف خارجي</strong></span>
+                            </div>
+                            <span id="auto-save-last-sync" style="font-size: 0.8rem; color: #047857;">(جاري الحفظ التلقائي مع كل تعديل)</span>
+                        </div>
+                    </div>
+
+                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.25rem; line-height: 1.7;">
+                        تتيح لك هذه الميزة تصدير واستعادة بيانات البرنامج بكل أمان، مع إمكانية ربط ملف حفظ خارجي مباشر على جهازك أو مجلد OneDrive (للكمبيوتر) أو استخدام درع الحفظ السريع لجوالات الآيفون والأندرويد.
+                    </p>
+
+                    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+                        <!-- زر ربط ملف الحفظ التلقائي للكمبيوتر -->
+                        <button type="button" id="btn-link-auto-save-file" class="btn" style="padding: 0.65rem 1.25rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.92rem; background: #0284c7; border-color: #0369a1; color: #fff;">
+                            <i class="fas fa-shield-alt"></i> ربط ملف حفظ تلقائي (حماية دائمة)
+                        </button>
+
+                        <!-- زر استعادة وربط من ملف سابق -->
+                        <button type="button" id="btn-restore-link-file" class="btn" style="padding: 0.65rem 1.25rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.92rem; background: #334155; border-color: #1e293b; color: #fff;">
+                            <i class="fas fa-folder-open"></i> استعادة وربط من ملف سابق
+                        </button>
+
+                        <!-- زر الحفظ السريع للآيفون والجوال -->
+                        <button type="button" id="btn-quick-backup" class="btn" onclick="exportQuickBackup()" style="padding: 0.65rem 1.25rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.92rem; background: #7c3aed; border-color: #6d28d9; color: #fff;">
+                            <i class="fas fa-cloud-download-alt"></i> نسخ احتياطي سريع (iCloud / ملفات)
+                        </button>
+
+                        <!-- زر تصدير شامل كالمعتاد -->
+                        <button type="button" id="btn-export-full-backup" class="btn btn-success" style="padding: 0.65rem 1.25rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.92rem; background: #059669; border-color: #047857; color: #fff;">
+                            <i class="fas fa-file-export"></i> تصدير شامل
+                        </button>
+
+                        <!-- زر استعادة كالمعتاد -->
+                        <button type="button" id="btn-trigger-import-backup" class="btn btn-warning" style="padding: 0.65rem 1.25rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.92rem; background: #d97706; border-color: #b45309; color: #fff;">
+                            <i class="fas fa-file-import"></i> استعادة نسخة سابقة
                         </button>
                         <input type="file" id="input-import-backup-file" accept=".json" style="display: none;">
                     </div>
@@ -2489,6 +2527,17 @@
         function saveData() {
             saveSyncToLocalStorage();
             saveLocalBackupFile(false);
+
+            // عداد التعديلات لحماية الجوال وسفاري (درع الحفظ السريع)
+            if (typeof notifyDataModified === 'function') {
+                notifyDataModified();
+            }
+
+            // مزامنة صامتة في الخلفية مع الملف الخارجي للكمبيوتر (إن وُجد ملف مربوط)
+            if (typeof syncToExternalFile === 'function') {
+                syncToExternalFile(false);
+            }
+
             return initIndexedDB().then(function() {
                 var stage = (appData.settings && appData.settings.stage) ? appData.settings.stage : 'elementary';
                 var stageKey = 'stage_' + stage;
@@ -2637,6 +2686,10 @@
 
         window.addEventListener('DOMContentLoaded', async function() {
             try {
+                // تفعيل الحماية المدمجة للمتصفح ضد المسح التلقائي (Persistent Storage API)
+                if (typeof requestPersistentStorage === 'function') {
+                    try { requestPersistentStorage(); } catch(e) {}
+                }
                 await initIndexedDB();
                 await runAutoMigrationToIndexedDB();
                 var bootG = (function() {
@@ -7634,6 +7687,17 @@
                         updateSubscriptionUI();
                     }
                 }
+
+                // فحص ظهور نافذة التحديث الجديد ودرع حماية البيانات لمرة واحدة
+                try {
+                    if (!localStorage.getItem('seen_update_v9_8')) {
+                        setTimeout(function() {
+                            if (typeof showWhatsNewModal === 'function') {
+                                showWhatsNewModal();
+                            }
+                        }, 500);
+                    }
+                } catch (e) {}
             } else {
                 var errEl = document.getElementById('lock-error');
                 if (errEl) errEl.style.display = 'block';
@@ -7709,7 +7773,7 @@
         }
     </script>
 
-    <!-- سكربت النسخ الاحتياطي الشامل والاستعادة الكاملة للبيانات -->
+    <!-- سكربت النسخ الاحتياطي الشامل ودرع حماية البيانات الدائم -->
     <script>
     (function() {
         'use strict';
@@ -7725,126 +7789,144 @@
             return 'نسخة_احتياطية_سجل_الدرجات_' + yyyy + '-' + mm + '-' + dd + '_' + hh + '-' + min + '.json';
         }
 
-        // 2. تصدير النسخة الاحتياطية الشاملة
+        // 2. تفعيل الحماية المدمجة للمتصفح (Persistent Storage API) لمنع Safari و Chrome من مسح IndexedDB تلقائياً
+        async function requestPersistentStorage() {
+            try {
+                if (navigator.storage && navigator.storage.persist) {
+                    var isPersisted = navigator.storage.persisted ? await navigator.storage.persisted() : false;
+                    if (!isPersisted) {
+                        var granted = await navigator.storage.persist();
+                        console.log('Persistent storage requested. Granted:', granted);
+                    } else {
+                        console.log('Persistent storage is already active.');
+                    }
+                }
+            } catch (err) {
+                console.warn('Persistent storage request note:', err);
+            }
+        }
+
+        // 3. بناء هيكل البيانات الموحد والمتوافق 100% للنسخ الاحتياطي
+        async function buildFullBackupPayload() {
+            if (typeof saveData === 'function') {
+                try { await saveData(); } catch (e) {}
+            }
+
+            var dbNames = ['AldragatDB'];
+            if (window.indexedDB && typeof window.indexedDB.databases === 'function') {
+                try {
+                    var dbs = await window.indexedDB.databases();
+                    if (Array.isArray(dbs)) {
+                        dbs.forEach(function(d) {
+                            if (d && d.name && dbNames.indexOf(d.name) === -1) {
+                                dbNames.push(d.name);
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.warn('indexedDB.databases() error:', e);
+                }
+            }
+
+            var idbData = {};
+            var totalRecordsCount = 0;
+
+            for (var i = 0; i < dbNames.length; i++) {
+                var dbName = dbNames[i];
+                try {
+                    var db = await new Promise(function(resolve, reject) {
+                        var req = window.indexedDB.open(dbName);
+                        req.onsuccess = function() { resolve(req.result); };
+                        req.onerror = function() { reject(req.error); };
+                    });
+
+                    idbData[dbName] = {};
+                    var storeNames = Array.from(db.objectStoreNames);
+
+                    for (var s = 0; s < storeNames.length; s++) {
+                        var storeName = storeNames[s];
+                        var records = await new Promise(function(resolve, reject) {
+                            try {
+                                var tx = db.transaction(storeName, 'readonly');
+                                var store = tx.objectStore(storeName);
+                                var keysReq = store.getAllKeys();
+                                var valsReq = store.getAll();
+
+                                tx.oncomplete = function() {
+                                    var keys = keysReq.result || [];
+                                    var vals = valsReq.result || [];
+                                    var pairs = [];
+                                    for (var k = 0; k < keys.length; k++) {
+                                        if (keys[k] === 'autoSaveFileHandle') continue;
+                                        pairs.push({
+                                            key: keys[k],
+                                            value: vals[k]
+                                        });
+                                    }
+                                    resolve(pairs);
+                                };
+                                tx.onerror = function() { reject(tx.error); };
+                            } catch (err) {
+                                reject(err);
+                            }
+                        });
+
+                        idbData[dbName][storeName] = records;
+                        totalRecordsCount += records.length;
+                    }
+                    db.close();
+                } catch (err) {
+                    console.warn('Could not export database ' + dbName + ':', err);
+                }
+            }
+
+            var lsData = {};
+            var licenseKeyPattern = /^(aldragat_|lic|trial|salt|tamper|device|hardware|machine)/i;
+            try {
+                for (var l = 0; l < localStorage.length; l++) {
+                    var key = localStorage.key(l);
+                    if (key && !licenseKeyPattern.test(key)) {
+                        lsData[key] = localStorage.getItem(key);
+                        totalRecordsCount++;
+                    }
+                }
+            } catch (e) {
+                console.warn('localStorage read error:', e);
+            }
+
+            var now = new Date();
+            return {
+                appIdentifier: 'ALDRAGAT_SMART_GRADE_BACKUP',
+                appName: 'سجل الدرجات الذكي',
+                version: '1.0.0',
+                exportedAt: now.toISOString(),
+                exportedAtFormatted: now.toLocaleDateString('ar-SA') + ' ' + now.toLocaleTimeString('ar-SA'),
+                currentStage: (typeof appData !== 'undefined' && appData.currentStage) ? appData.currentStage : 'elementary',
+                settings: (typeof appData !== 'undefined' && appData.settings) ? appData.settings : {},
+                students: (typeof appData !== 'undefined' && appData.students) ? appData.students : [],
+                subjects: (typeof appData !== 'undefined' && appData.subjects) ? appData.subjects : [],
+                grades: (typeof appData !== 'undefined' && appData.grades) ? appData.grades : {},
+                archive: (typeof appData !== 'undefined' && appData.archive) ? appData.archive : [],
+                indexedDB: idbData,
+                localStorage: lsData,
+                stats: {
+                    totalRecords: totalRecordsCount,
+                    databasesCount: Object.keys(idbData).length
+                }
+            };
+        }
+
+        // 4. تصدير النسخة الاحتياطية الشاملة يدوياً
         async function exportFullBackup() {
             try {
                 if (typeof showToast === 'function') {
                     showToast('جاري تجميع وحفظ النسخة الاحتياطية الشاملة...', 'info');
                 }
 
-                // ضمان حفظ أي تعديلات معلقة في IndexedDB قبل النسخ
-                if (typeof saveData === 'function') {
-                    try { await saveData(); } catch (e) {}
-                }
-
-                // استكشاف وتحديد جميع قواعد البيانات IndexedDB
-                var dbNames = ['AldragatDB'];
-                if (window.indexedDB && typeof window.indexedDB.databases === 'function') {
-                    try {
-                        var dbs = await window.indexedDB.databases();
-                        if (Array.isArray(dbs)) {
-                            dbs.forEach(function(d) {
-                                if (d && d.name && dbNames.indexOf(d.name) === -1) {
-                                    dbNames.push(d.name);
-                                }
-                            });
-                        }
-                    } catch (e) {
-                        console.warn('indexedDB.databases() error:', e);
-                    }
-                }
-
-                var idbData = {};
-                var totalRecordsCount = 0;
-
-                // قراءة جميع قواعد البيانات والمخازن بكامل السجلات
-                for (var i = 0; i < dbNames.length; i++) {
-                    var dbName = dbNames[i];
-                    try {
-                        var db = await new Promise(function(resolve, reject) {
-                            var req = window.indexedDB.open(dbName);
-                            req.onsuccess = function() { resolve(req.result); };
-                            req.onerror = function() { reject(req.error); };
-                        });
-
-                        idbData[dbName] = {};
-                        var storeNames = Array.from(db.objectStoreNames);
-
-                        for (var s = 0; s < storeNames.length; s++) {
-                            var storeName = storeNames[s];
-                            var records = await new Promise(function(resolve, reject) {
-                                try {
-                                    var tx = db.transaction(storeName, 'readonly');
-                                    var store = tx.objectStore(storeName);
-                                    var keysReq = store.getAllKeys();
-                                    var valsReq = store.getAll();
-
-                                    tx.oncomplete = function() {
-                                        var keys = keysReq.result || [];
-                                        var vals = valsReq.result || [];
-                                        var pairs = [];
-                                        for (var k = 0; k < keys.length; k++) {
-                                            pairs.push({
-                                                key: keys[k],
-                                                value: vals[k]
-                                            });
-                                        }
-                                        resolve(pairs);
-                                    };
-                                    tx.onerror = function() { reject(tx.error); };
-                                } catch (err) {
-                                    reject(err);
-                                }
-                            });
-
-                            idbData[dbName][storeName] = records;
-                            totalRecordsCount += records.length;
-                        }
-                        db.close();
-                    } catch (err) {
-                        console.warn('Could not export database ' + dbName + ':', err);
-                    }
-                }
-
-                // جمع بيانات localStorage مع الاستثناء الصارم لمفاتيح الترخيص والتفعيل
-                var lsData = {};
-                var licenseKeyPattern = /^(aldragat_|lic|trial|salt|tamper|device|hardware|machine)/i;
-                try {
-                    for (var l = 0; l < localStorage.length; l++) {
-                        var key = localStorage.key(l);
-                        if (key && !licenseKeyPattern.test(key)) {
-                            lsData[key] = localStorage.getItem(key);
-                            totalRecordsCount++;
-                        }
-                    }
-                } catch (e) {
-                    console.warn('localStorage read error:', e);
-                }
-
-                var now = new Date();
-                var backupPayload = {
-                    appIdentifier: 'ALDRAGAT_SMART_GRADE_BACKUP',
-                    appName: 'سجل الدرجات الذكي',
-                    version: '1.0.0',
-                    exportedAt: now.toISOString(),
-                    exportedAtFormatted: now.toLocaleDateString('ar-SA') + ' ' + now.toLocaleTimeString('ar-SA'),
-                    currentStage: (typeof appData !== 'undefined' && appData.currentStage) ? appData.currentStage : 'elementary',
-                    settings: (typeof appData !== 'undefined' && appData.settings) ? appData.settings : {},
-                    students: (typeof appData !== 'undefined' && appData.students) ? appData.students : [],
-                    subjects: (typeof appData !== 'undefined' && appData.subjects) ? appData.subjects : [],
-                    grades: (typeof appData !== 'undefined' && appData.grades) ? appData.grades : {},
-                    archive: (typeof appData !== 'undefined' && appData.archive) ? appData.archive : [],
-                    indexedDB: idbData,
-                    localStorage: lsData,
-                    stats: {
-                        totalRecords: totalRecordsCount,
-                        databasesCount: Object.keys(idbData).length
-                    }
-                };
-
-                // حفظ وتنزيل الملف مع دعم المشاركة الأصلية في الجوال (iOS / Android)
+                var backupPayload = await buildFullBackupPayload();
                 var fileName = generateBackupFileName();
                 var blob = new Blob([JSON.stringify(backupPayload, null, 2)], { type: 'application/json;charset=utf-8' });
+
                 if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], fileName, { type: 'application/json' })] })) {
                     try {
                         var file = new File([blob], fileName, { type: 'application/json' });
@@ -7852,6 +7934,7 @@
                             files: [file],
                             title: 'النسخة الاحتياطية - سجل الدرجات الذكي'
                         });
+                        resetUnsavedChanges();
                         if (typeof showToast === 'function') {
                             showToast('تمت مشاركة وحفظ النسخة الاحتياطية بنجاح!', 'success');
                         }
@@ -7860,6 +7943,7 @@
                         if (shErr.name === 'AbortError') return;
                     }
                 }
+
                 var url = URL.createObjectURL(blob);
                 var link = document.createElement('a');
                 link.href = url;
@@ -7869,8 +7953,9 @@
                 document.body.removeChild(link);
                 setTimeout(function() { URL.revokeObjectURL(url); }, 2000);
 
+                resetUnsavedChanges();
                 if (typeof showToast === 'function') {
-                    showToast('تم تصدير نسخة احتياطية شاملة بنجاح! (' + totalRecordsCount + ' سجل محفوظ)', 'success');
+                    showToast('تم تصدير نسخة احتياطية شاملة بنجاح! (' + backupPayload.stats.totalRecords + ' سجل محفوظ)', 'success');
                 }
             } catch (err) {
                 console.error('Export backup error:', err);
@@ -7880,7 +7965,7 @@
             }
         }
 
-        // 3. استعادة النسخة الاحتياطية الشاملة
+        // 5. استعادة النسخة الاحتياطية الشاملة (متوافق مع الكمبيوتر EXE والجوال)
         async function handleRestoreFile(file) {
             if (!file) return;
 
@@ -7979,9 +8064,10 @@
                                     var store = tx.objectStore(storeName);
                                     for (var p = 0; p < pairs.length; p++) {
                                         var pair = pairs[p];
-                                        // الحفاظ على حالة الترخيص الأصلية للجهاز إن وُجدت
                                         if (pair.key === 'licenseState' && currentLocalLicenseState) {
                                             store.put(currentLocalLicenseState, 'licenseState');
+                                        } else if (pair.key === 'autoSaveFileHandle') {
+                                            // عدم استبدال مقبض الملف
                                         } else {
                                             store.put(pair.value, pair.key);
                                         }
@@ -8044,8 +8130,10 @@
                         }
                     }
 
+                    resetUnsavedChanges();
+
                     if (typeof showToast === 'function') {
-                        showToast('تمت استعادة جميع البيانات بنجاح! جاري إعادة تحميل البرنامج...', 'success');
+                        showToast('تمت استعادة جميع البيانات بنجاح! جاري تحديث البرنامج...', 'success');
                     }
 
                     setTimeout(function() {
@@ -8062,11 +8150,333 @@
             reader.readAsText(file);
         }
 
-        // 4. ربط الأزرار بعد اكتمال تحميل الصفحة
-        function initBackupUI() {
+        // 6. نظام الحفظ التلقائي الخارجي (File System Access API) للكمبيوتر (Chrome / Edge)
+        var linkedFileHandle = null;
+        var syncDebounceTimer = null;
+        var isSyncingNow = false;
+
+        async function getStoredFileHandle() {
+            if (linkedFileHandle) return linkedFileHandle;
+            try {
+                if (typeof idbGet === 'function') {
+                    var h = await idbGet('autoSaveFileHandle');
+                    if (h) {
+                        linkedFileHandle = h;
+                        return h;
+                    }
+                }
+            } catch (e) {
+                console.warn('Could not read autoSaveFileHandle:', e);
+            }
+            return null;
+        }
+
+        function updateAutoSaveBadge(fileName, isSuccess) {
+            var topbarBadge = document.getElementById('auto-save-topbar-badge');
+            var statusBox = document.getElementById('auto-save-status-box');
+            var fnEl = document.getElementById('auto-save-filename');
+            var timeEl = document.getElementById('auto-save-last-sync');
+
+            var now = new Date();
+            var timeStr = now.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
+
+            if (topbarBadge) {
+                topbarBadge.style.display = 'inline-flex';
+                topbarBadge.innerHTML = '<i class="fas fa-shield-alt"></i> 🟢 محمي: حفظ تلقائي';
+                topbarBadge.title = 'حفظ تلقائي نشط في: ' + (fileName || 'ملف خارجي') + ' (' + timeStr + ')';
+            }
+
+            if (statusBox) {
+                statusBox.style.display = 'block';
+                if (fnEl) fnEl.textContent = fileName || 'الملف المربوط';
+                if (timeEl) timeEl.textContent = '(آخر حفظ: ' + timeStr + ')';
+            }
+        }
+
+        async function syncToExternalFile(isForced) {
+            if (typeof window === 'undefined' || !('showSaveFilePicker' in window)) return;
+
+            clearTimeout(syncDebounceTimer);
+            if (!isForced) {
+                syncDebounceTimer = setTimeout(function() {
+                    syncToExternalFile(true);
+                }, 800);
+                return;
+            }
+
+            if (isSyncingNow) return;
+            isSyncingNow = true;
+
+            try {
+                var handle = await getStoredFileHandle();
+                if (!handle) {
+                    isSyncingNow = false;
+                    return;
+                }
+
+                if (handle.queryPermission) {
+                    var status = await handle.queryPermission({ mode: 'readwrite' });
+                    if (status !== 'granted') {
+                        isSyncingNow = false;
+                        return;
+                    }
+                }
+
+                var payload = await buildFullBackupPayload();
+                var writable = await handle.createWritable();
+                await writable.write(JSON.stringify(payload, null, 2));
+                await writable.close();
+
+                updateAutoSaveBadge(handle.name, true);
+                resetUnsavedChanges();
+            } catch (err) {
+                console.warn('Silent external auto-save note:', err);
+            } finally {
+                isSyncingNow = false;
+            }
+        }
+
+        async function linkAutoSaveFile() {
+            if (!('showSaveFilePicker' in window)) {
+                if (typeof showToast === 'function') {
+                    showToast('المتصفح الحالي لا يدعم الوصول المباشر للملفات الخارجية. يُرجى استخدام متصفح Chrome أو Edge على الكمبيوتر لهذه الميزة.', 'warning');
+                }
+                return;
+            }
+            try {
+                var handle = await window.showSaveFilePicker({
+                    suggestedName: 'سجل_الدرجات_حفظ_تلقائي.json',
+                    types: [{
+                        description: 'ملف نسخ احتياطي سجل الدرجات (JSON)',
+                        accept: { 'application/json': ['.json'] }
+                    }]
+                });
+
+                linkedFileHandle = handle;
+                if (typeof idbSet === 'function') {
+                    await idbSet('autoSaveFileHandle', handle);
+                    await idbSet('autoSaveFileName', handle.name);
+                }
+
+                if (typeof showToast === 'function') {
+                    showToast('جاري كتابة البيانات وتفعيل الحماية الدائمة...', 'info');
+                }
+
+                await syncToExternalFile(true);
+                updateAutoSaveBadge(handle.name, true);
+
+                if (typeof showToast === 'function') {
+                    showToast('🟢 تم تفعيل درع الحماية وربط الملف بنجاح! سيتم حفظ أي تعديل تلقائياً في الملف المختار.', 'success');
+                }
+
+                closeWhatsNewModal(true);
+            } catch (err) {
+                if (err && err.name !== 'AbortError') {
+                    console.error('linkAutoSaveFile error:', err);
+                    if (typeof showToast === 'function') {
+                        showToast('تعذر ربط الملف: ' + (err.message || err), 'danger');
+                    }
+                }
+            }
+        }
+
+        async function restoreAndLinkFile() {
+            if (!('showOpenFilePicker' in window)) {
+                var input = document.getElementById('input-import-backup-file');
+                if (input) {
+                    input.value = '';
+                    input.click();
+                }
+                return;
+            }
+            try {
+                var handles = await window.showOpenFilePicker({
+                    types: [{
+                        description: 'ملف نسخ احتياطي سجل الدرجات (JSON)',
+                        accept: { 'application/json': ['.json'] }
+                    }],
+                    multiple: false
+                });
+
+                if (!handles || handles.length === 0) return;
+                var handle = handles[0];
+                var file = await handle.getFile();
+
+                linkedFileHandle = handle;
+                if (typeof idbSet === 'function') {
+                    await idbSet('autoSaveFileHandle', handle);
+                    await idbSet('autoSaveFileName', handle.name);
+                }
+
+                await handleRestoreFile(file);
+            } catch (err) {
+                if (err && err.name !== 'AbortError') {
+                    console.error('restoreAndLinkFile error:', err);
+                    if (typeof showToast === 'function') {
+                        showToast('تعذر استعادة الملف: ' + (err.message || err), 'danger');
+                    }
+                }
+            }
+        }
+
+        // 7. درع الحفظ السريع لجوالات الآيفون والآيباد وسفاري (Quick Backup Guard)
+        var unsavedChangesCount = 0;
+        try {
+            unsavedChangesCount = parseInt(localStorage.getItem('aldragat_unsaved_changes') || '0', 10);
+            if (isNaN(unsavedChangesCount)) unsavedChangesCount = 0;
+        } catch (e) {}
+
+        function notifyDataModified() {
+            if (linkedFileHandle) return;
+
+            unsavedChangesCount++;
+            try { localStorage.setItem('aldragat_unsaved_changes', unsavedChangesCount.toString()); } catch(e) {}
+
+            if (unsavedChangesCount >= 10) {
+                showQuickBackupPrompt();
+            }
+        }
+
+        function resetUnsavedChanges() {
+            unsavedChangesCount = 0;
+            try { localStorage.setItem('aldragat_unsaved_changes', '0'); } catch(e) {}
+            var p = document.getElementById('quick-backup-guard-prompt');
+            if (p) p.remove();
+        }
+
+        function showQuickBackupPrompt() {
+            var existing = document.getElementById('quick-backup-guard-prompt');
+            if (existing) return;
+
+            var div = document.createElement('div');
+            div.id = 'quick-backup-guard-prompt';
+            div.style.cssText = 'position:fixed; bottom:calc(env(safe-area-inset-bottom, 0px) + 75px); left:16px; right:16px; max-width:480px; margin:0 auto; background:#0f172a; color:#ffffff; border:2px solid #8b5cf6; box-shadow:0 12px 30px rgba(0,0,0,0.5); border-radius:14px; padding:12px 16px; z-index:10050; display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:0.88rem; animation:fadeIn 0.3s ease;';
+
+            div.innerHTML = '<div style="display:flex;align-items:center;gap:10px;flex:1;">' +
+                '<div style="width:38px;height:38px;border-radius:50%;background:rgba(139,92,246,0.2);display:flex;align-items:center;justify-content:center;color:#a78bfa;font-size:1.2rem;flex-shrink:0;">' +
+                    '<i class="fas fa-shield-alt"></i>' +
+                '</div>' +
+                '<div>' +
+                    '<div style="font-weight:800;color:#f5f3ff;">درع الحفظ السريع</div>' +
+                    '<div style="font-size:0.78rem;color:#cbd5e1;line-height:1.4;">لديك تعديلات جديدة! احفظ نسخة في جهازك لضمان سلامة بياناتك.</div>' +
+                '</div>' +
+            '</div>' +
+            '<div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">' +
+                '<button type="button" class="btn btn-sm" onclick="exportQuickBackup()" style="background:#7c3aed;color:#fff;border:none;padding:7px 12px;font-weight:800;border-radius:8px;font-size:0.82rem;white-space:nowrap;cursor:pointer;"><i class="fas fa-download"></i> حفظ الآن</button>' +
+                '<button type="button" onclick="dismissQuickBackupPrompt()" style="background:transparent;color:#94a3b8;border:none;padding:4px;cursor:pointer;font-size:1.2rem;line-height:1;" title="إغلاق">&times;</button>' +
+            '</div>';
+
+            document.body.appendChild(div);
+        }
+
+        function dismissQuickBackupPrompt() {
+            var p = document.getElementById('quick-backup-guard-prompt');
+            if (p) p.remove();
+            unsavedChangesCount = 0;
+            try { localStorage.setItem('aldragat_unsaved_changes', '0'); } catch(e) {}
+        }
+
+        async function exportQuickBackup() {
+            dismissQuickBackupPrompt();
+            if (typeof showToast === 'function') {
+                showToast('جاري حفظ النسخة السريعة...', 'info');
+            }
+            try {
+                var payload = await buildFullBackupPayload();
+                var fileName = generateBackupFileName();
+                var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+
+                if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], fileName, { type: 'application/json' })] })) {
+                    try {
+                        var file = new File([blob], fileName, { type: 'application/json' });
+                        await navigator.share({
+                            files: [file],
+                            title: 'نسخة احتياطية - سجل الدرجات الذكي'
+                        });
+                        resetUnsavedChanges();
+                        if (typeof showToast === 'function') {
+                            showToast('تمت مشاركة وحفظ النسخة الاحتياطية بنجاح!', 'success');
+                        }
+                        return;
+                    } catch (shErr) {
+                        if (shErr.name === 'AbortError') return;
+                    }
+                }
+
+                var url = URL.createObjectURL(blob);
+                var link = document.createElement('a');
+                link.href = url;
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                setTimeout(function() { URL.revokeObjectURL(url); }, 2000);
+
+                resetUnsavedChanges();
+                if (typeof showToast === 'function') {
+                    showToast('تم حفظ نسخة احتياطية سريعة بنجاح في جهازك!', 'success');
+                }
+            } catch (err) {
+                console.error('Quick backup error:', err);
+                if (typeof showToast === 'function') {
+                    showToast('حدث خطأ أثناء حفظ النسخة السريعة: ' + (err.message || err), 'danger');
+                }
+            }
+        }
+
+        // 8. نافذة إشعار التحديث ودليل درع الحماية (WhatsNewModal)
+        function showWhatsNewModal() {
+            var m = document.getElementById('whats-new-modal');
+            if (m) {
+                m.style.display = 'flex';
+                var btnLink = document.getElementById('btn-whatsnew-link-file');
+                if (btnLink && !('showSaveFilePicker' in window)) {
+                    btnLink.style.display = 'none';
+                }
+            }
+        }
+
+        function closeWhatsNewModal(markAsSeen) {
+            var m = document.getElementById('whats-new-modal');
+            if (m) m.style.display = 'none';
+            if (markAsSeen) {
+                try { localStorage.setItem('seen_update_v9_8', 'true'); } catch(e) {}
+            }
+        }
+
+        // 9. ربط الأزرار بعد اكتمال تحميل الصفحة وفحص حالة الربط
+        async function initBackupUI() {
+            requestPersistentStorage();
+
+            try {
+                var storedHandle = await getStoredFileHandle();
+                if (storedHandle) {
+                    updateAutoSaveBadge(storedHandle.name, true);
+                }
+            } catch (e) {}
+
+            var btnLink = document.getElementById('btn-link-auto-save-file');
+            var btnRestoreLink = document.getElementById('btn-restore-link-file');
             var btnExport = document.getElementById('btn-export-full-backup');
             var btnTrigger = document.getElementById('btn-trigger-import-backup');
             var fileInput = document.getElementById('input-import-backup-file');
+
+            if (btnLink && !('showSaveFilePicker' in window)) {
+                btnLink.style.opacity = '0.6';
+                btnLink.title = 'خاص بمتصفحات الكمبيوتر (Chrome / Edge)';
+            }
+
+            if (btnLink) {
+                btnLink.addEventListener('click', function() {
+                    linkAutoSaveFile();
+                });
+            }
+
+            if (btnRestoreLink) {
+                btnRestoreLink.addEventListener('click', function() {
+                    restoreAndLinkFile();
+                });
+            }
 
             if (btnExport) {
                 btnExport.addEventListener('click', function() {
@@ -8089,6 +8499,21 @@
             }
         }
 
+        // تصدير الدوال للنافذة العامة لاستخدامها في معالجات الأحداث
+        window.requestPersistentStorage = requestPersistentStorage;
+        window.buildFullBackupPayload = buildFullBackupPayload;
+        window.exportFullBackup = exportFullBackup;
+        window.handleRestoreFile = handleRestoreFile;
+        window.linkAutoSaveFile = linkAutoSaveFile;
+        window.restoreAndLinkFile = restoreAndLinkFile;
+        window.syncToExternalFile = syncToExternalFile;
+        window.notifyDataModified = notifyDataModified;
+        window.showQuickBackupPrompt = showQuickBackupPrompt;
+        window.dismissQuickBackupPrompt = dismissQuickBackupPrompt;
+        window.exportQuickBackup = exportQuickBackup;
+        window.showWhatsNewModal = showWhatsNewModal;
+        window.closeWhatsNewModal = closeWhatsNewModal;
+
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', initBackupUI);
         } else {
@@ -8097,29 +8522,65 @@
     })();
     </script>
 
-    <!-- شريط التنقل السفلي الثابت للجوال (Mobile Bottom Nav - يظهر فقط على الجوال) -->
-    <nav id="mobile-bottom-nav" class="mobile-bottom-nav">
-        <button type="button" class="bottom-nav-item active" data-tab="dashboard" onclick="switchTab('dashboard', this)">
-            <i class="fas fa-chart-pie"></i>
-            <span>الرئيسية</span>
-        </button>
-        <button type="button" class="bottom-nav-item" data-tab="grades-entry" onclick="switchTab('grades-entry', this)">
-            <i class="fas fa-edit"></i>
-            <span>الدرجات</span>
-        </button>
-        <button type="button" class="bottom-nav-item" data-tab="students" onclick="switchTab('students', this)">
-            <i class="fas fa-users"></i>
-            <span>الطلاب</span>
-        </button>
-        <button type="button" class="bottom-nav-item" data-tab="archive" onclick="switchTab('archive', this)">
-            <i class="fas fa-archive"></i>
-            <span>الأرشيف</span>
-        </button>
-        <button type="button" class="bottom-nav-item" onclick="toggleMobileSidebar()">
-            <i class="fas fa-bars"></i>
-            <span>المزيد</span>
-        </button>
-    </nav>
+    <!-- نافذة إشعار التحديث ودليل درع حماية البيانات الدائم -->
+    <div id="whats-new-modal" class="modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 100000; align-items: center; justify-content: center; padding: 1rem; direction: rtl; box-sizing: border-box;">
+        <div class="modal-content" style="background: #0f172a; border: 2px solid #38bdf8; border-radius: 18px; max-width: 550px; width: 100%; color: #f8fafc; padding: 1.75rem 1.5rem; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); box-sizing: border-box;">
+            <div style="text-align: center; margin-bottom: 1.25rem;">
+                <div style="width: 60px; height: 60px; border-radius: 50%; background: rgba(56, 189, 248, 0.15); border: 2px solid #38bdf8; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem auto; color: #38bdf8; font-size: 1.8rem;">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h2 style="font-size: 1.35rem; color: #ffffff; margin-bottom: 0.25rem; font-weight: 800;">🎉 تحديث جديد: درع حماية البيانات الدائم</h2>
+                <p style="color: #94a3b8; font-size: 0.85rem; margin: 0;">نظام متطور لحماية بياناتك من الضياع التام حتى عند مسح ذاكرة المتصفح</p>
+            </div>
 
-</body>
-</html>
+            <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 1rem; margin-bottom: 1rem; line-height: 1.6; font-size: 0.88rem;">
+                <h4 style="color: #38bdf8; margin-bottom: 0.4rem; font-size: 0.95rem; display: flex; align-items: center; gap: 0.5rem; font-weight: 700;">
+                    <i class="fas fa-magic"></i> ما الذي تغيّر في هذا التحديث؟
+                </h4>
+                <p style="color: #cbd5e1; margin: 0;">
+                    تم تفعيل الحماية المدمجة ضد المسح التلقائي للبيانات في المتصفح، مع إضافة نظام الحفظ التلقائي المباشر على القرص الصلب أو مجلد OneDrive للكمبيوتر، ودرع الحفظ السريع للجوال.
+                </p>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 0.85rem; margin-bottom: 1.35rem;">
+                <!-- تعليمات الكمبيوتر -->
+                <div style="background: rgba(2, 132, 199, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px; padding: 0.95rem; font-size: 0.88rem;">
+                    <div style="font-weight: 800; color: #38bdf8; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-laptop"></i> لمستخدمي الكمبيوتر (Chrome / Edge):
+                    </div>
+                    <p style="color: #cbd5e1; margin-bottom: 0.75rem; line-height: 1.6; margin-top: 0;">
+                        اضغط زر <strong>«ربط ملف الحفظ الآن»</strong> أدناه، واختر مكاناً في جهازك (مثل سطح المكتب أو مجلد OneDrive). بعد هذه الخطوة، سيحفظ البرنامج كل رصد وتعديل تجريه تلقائياً وبصمت دون أي تدخل منك!
+                    </p>
+                    <button type="button" id="btn-whatsnew-link-file" class="btn" onclick="linkAutoSaveFile()" style="background: #0284c7; color: #fff; border: none; padding: 0.5rem 1.15rem; border-radius: 8px; font-weight: 700; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+                        <i class="fas fa-shield-alt"></i> ربط ملف الحفظ الآن
+                    </button>
+                </div>
+
+                <!-- تعليمات الآيفون والجوال -->
+                <div style="background: rgba(124, 58, 237, 0.08); border: 1px solid rgba(167, 139, 250, 0.3); border-radius: 12px; padding: 0.95rem; font-size: 0.88rem;">
+                    <div style="font-weight: 800; color: #c084fc; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-mobile-alt"></i> لمستخدمي الآيفون والآيباد والجوال (Safari):
+                    </div>
+                    <p style="color: #cbd5e1; margin: 0; line-height: 1.6;">
+                        تم تفعيل الحماية الدائمة تلقائياً داخل المتصفح. وعند قيامك برصد 10 تعديلات جديدة، سيظهر لك تنبيه <strong>«درع الحفظ السريع»</strong> لحفظ نسخة إضافية بنقرة واحدة داخل تطبيق الملفات (Files) في جهازك أو مشاركتها عبر واتساب.
+                    </p>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: center;">
+                <button type="button" class="btn btn-primary" onclick="closeWhatsNewModal(true)" style="padding: 0.75rem 2.5rem; font-weight: 800; border-radius: 10px; font-size: 1rem; width: 100%; max-width: 300px; background: #0284c7; border-color: #0369a1; cursor: pointer;">
+                    <i class="fas fa-check"></i> فهمت، ابدأ العمل
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة إشعار التحديث ودليل درع حماية البيانات الدائم -->
+    <div id="whats-new-modal" class="modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 100000; align-items: center; justify-content: center; padding: 1rem; direction: rtl; box-sizing: border-box;">
+        <div class="modal-content" style="background: #0f172a; border: 2px solid #38bdf8; border-radius: 18px; max-width: 550px; width: 100%; color: #f8fafc; padding: 1.75rem 1.5rem; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); box-sizing: border-box;">
+            <div style="text-align: center; margin-bottom: 1.25rem;">
+                <div style="width: 60px; height: 60px; border-radius: 50%; background: rgba(56, 189, 248, 0.15); border: 2px solid #38bdf8; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem auto; color: #38bdf8; font-size: 1.8rem;">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h2 style="font-size: 1.35rem; color: #ffffff; margin-bottom: 0.25rem; font-weight: 800;">🎉 تحديث جديد: درع حماية البيانات الدائم</h2>
+... [truncated for diff preview]
