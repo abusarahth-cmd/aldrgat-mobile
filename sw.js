@@ -1,8 +1,8 @@
 /**
- * Service Worker - سجل الدرجات الذكي (PWA Offline Cache - v9.8)
+ * Service Worker - سجل الدرجات الذكي (PWA Offline Cache - v9.9)
  */
 
-const CACHE_NAME = 'grades-v9.8';
+const CACHE_NAME = 'grades-v9.9';
 
 const STATIC_ASSETS = [
   './',
@@ -57,8 +57,13 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(req.url);
 
-  // استثناء خادم الواتساب السحابي ومكتبات cdnjs تماماً ليمروا للشبكة مباشرة (NetworkOnly)
-  if (url.hostname.includes('onrender.com') || url.hostname.includes('cdnjs.cloudflare.com')) {
+  // استثناء خادم الواتساب وخوادم Firebase و cdnjs ليمروا للشبكة مباشرة دون اعتراض من الكاش
+  if (url.hostname.includes('onrender.com') ||
+      url.hostname.includes('cdnjs.cloudflare.com') ||
+      url.hostname.includes('firestore.googleapis.com') ||
+      url.hostname.includes('firebaseio.com') ||
+      url.hostname.includes('firebaseapp.com') ||
+      url.hostname.includes('gstatic.com')) {
     return; // تمرير مباشر للشبكة دون اعتراض من الكاش
   }
 
