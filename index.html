@@ -1085,7 +1085,7 @@
     <aside class="sidebar">
         <div class="sidebar-header">
             <h2><i class="fas fa-graduation-cap"></i> سجل الدرجات الذكي</h2>
-            <p id="sidebar-subtitle">نظام متابعة ورصد الدرجات (v9.9)</p>
+            <p id="sidebar-subtitle">نظام متابعة ورصد الدرجات (v10.0)</p>
         </div>
         <ul class="nav-menu">
             <li class="nav-item active" onclick="switchTab('dashboard', this)">
@@ -1139,7 +1139,7 @@
             <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
                 <span id="cloud-sync-badge" class="badge" style="background: #f0fdf4; color: #166534; font-size: 0.8rem; font-weight: 700; border: 1.5px solid #86efac; padding: 4px 10px; border-radius: 9999px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer;" onclick="triggerManualCloudSync()" title="المزامنة السحابية المشفّرة (Zero-Knowledge) - اضغط للمزامنة الفورية"><i class="fas fa-cloud"></i> <span>☁️ متزامن سحابياً</span></span>
                 <div id="licenseHeaderBadgeContainer" style="display: flex; align-items: center;"></div>
-                <span id="app-version-badge" class="badge" style="background: #e2e8f0; color: #1e293b; font-size: 0.8rem; font-weight: 800; border: 1.5px solid #cbd5e1; padding: 4px 10px; border-radius: 9999px;">v9.9</span>
+                <span id="app-version-badge" class="badge" style="background: #e2e8f0; color: #1e293b; font-size: 0.8rem; font-weight: 800; border: 1.5px solid #cbd5e1; padding: 4px 10px; border-radius: 9999px;">v10.0</span>
                 <span id="whatsapp-status-badge" class="badge badge-success"><i class="fab fa-whatsapp"></i> واتساب مفعل</span>
                 <div style="text-align: left;">
                     <div id="top-teacher-name" style="font-weight: 700; font-size: 0.9rem;">المعلم: ---</div>
@@ -1552,23 +1552,10 @@
                                 <label style="font-weight: 700; white-space: nowrap;">الفصل:</label>
                                 <select id="entry-class-select" class="form-control" style="min-width: 95px;" onchange="renderGradeEntryTable()"></select>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 0.35rem;">
-                                <label style="font-weight: 700; white-space: nowrap;">الفصل الدراسي:</label>
-                                <select id="entry-term-select" class="form-control" style="min-width: 140px;" onchange="syncTermPeriodSettings()">
-                                    <option value="الفصل الدراسي الأول">الفصل الدراسي الأول</option>
-                                    <option value="الفصل الدراسي الثاني">الفصل الدراسي الثاني</option>
-                                </select>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 0.35rem;">
-                                <label style="font-weight: 700; white-space: nowrap;">الفترة:</label>
-                                <select id="entry-period-select" class="form-control" style="min-width: 110px;" onchange="syncTermPeriodSettings()">
-                                    <option value="الفترة الأولى">الفترة الأولى</option>
-                                    <option value="الفترة الثانية">الفترة الثانية</option>
-                                </select>
-                            </div>
                         </div>
 
                         <div style="display: flex; gap: 0.45rem; flex-wrap: wrap; align-items: center;">
+                            <button type="button" class="btn btn-outline" style="border-color: #ef4444; color: #dc2626; font-weight: 700;" id="btn-clear-grades-cells" onclick="clearCurrentGradeCells()"><i class="fas fa-eraser" style="color: #ef4444;"></i> تفريغ الخانات</button>
                             <button class="btn btn-primary" id="btn-toggle-fullscreen-layout" onclick="toggleGradesFullscreen()"><i class="fas fa-expand"></i> ملء الشاشة</button>
                             <button class="btn btn-outline" onclick="openPrintPreview('detailed')"><i class="fas fa-eye"></i> تقرير مفصل</button>
                             <button class="btn btn-outline" onclick="openPrintPreview('types_summary')"><i class="fas fa-eye"></i> مجموع كل نوع</button>
@@ -1940,17 +1927,20 @@
             <h3 style="margin-bottom: 1rem;"><i class="fas fa-archive" style="color: var(--primary);"></i> حفظ السجل في الأرشيف</h3>
             <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.85rem;">
                 <div class="form-group">
-                    <label>الفصل الدراسي:</label>
+                    <label style="font-weight: 700;">الفصل الدراسي:</label>
                     <select id="archive-term-select" class="form-control" onchange="updateArchiveSuggestedTitle()">
                         <option value="الفصل الدراسي الأول">الفصل الدراسي الأول</option>
                         <option value="الفصل الدراسي الثاني">الفصل الدراسي الثاني</option>
+                        <option value="الفصل الدراسي الثالث">الفصل الدراسي الثالث</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>الفترة:</label>
+                    <label style="font-weight: 700;">الفترة:</label>
                     <select id="archive-period-select" class="form-control" onchange="updateArchiveSuggestedTitle()">
                         <option value="الفترة الأولى">الفترة الأولى</option>
                         <option value="الفترة الثانية">الفترة الثانية</option>
+                        <option value="الفترة الثالثة">الفترة الثالثة</option>
+                        <option value="نهاية الفصل">نهاية الفصل</option>
                     </select>
                 </div>
             </div>
@@ -5711,34 +5701,47 @@
             if (totalCell) totalCell.textContent = +grandTotal.toFixed(2);
         }
 
-        function getSelectedTermAndPeriod() {
+        function getSelectedTermAndPeriod(overrideTerm, overridePeriod) {
+            if (overrideTerm && overridePeriod) {
+                return { term: overrideTerm, period: overridePeriod };
+            }
             var term = 'الفصل الدراسي الأول';
             var period = 'الفترة الأولى';
 
+            var arcModal = document.getElementById('archive-modal');
+            var isArcOpen = arcModal && (arcModal.style.display === 'flex' || arcModal.classList.contains('active'));
+            var arcTerm = document.getElementById('archive-term-select');
+            var arcPeriod = document.getElementById('archive-period-select');
             var prevTerm = document.getElementById('preview-term-select');
             var prevPeriod = document.getElementById('preview-period-select');
-            var entryTerm = document.getElementById('entry-term-select');
-            var entryPeriod = document.getElementById('entry-period-select');
 
-            if (prevTerm && prevTerm.value) term = prevTerm.value;
-            else if (entryTerm && entryTerm.value) term = entryTerm.value;
+            if (isArcOpen && arcTerm && arcTerm.value) {
+                term = arcTerm.value;
+            } else if (prevTerm && prevTerm.value) {
+                term = prevTerm.value;
+            } else if (arcTerm && arcTerm.value) {
+                term = arcTerm.value;
+            }
 
-            if (prevPeriod && prevPeriod.value) period = prevPeriod.value;
-            else if (entryPeriod && entryPeriod.value) period = entryPeriod.value;
+            if (isArcOpen && arcPeriod && arcPeriod.value) {
+                period = arcPeriod.value;
+            } else if (prevPeriod && prevPeriod.value) {
+                period = prevPeriod.value;
+            } else if (arcPeriod && arcPeriod.value) {
+                period = arcPeriod.value;
+            }
 
             return { term: term, period: period };
         }
 
         function syncTermPeriodSettings() {
-            var entryTerm = document.getElementById('entry-term-select');
-            var entryPeriod = document.getElementById('entry-period-select');
-            var prevTerm = document.getElementById('preview-term-select');
-            var prevPeriod = document.getElementById('preview-period-select');
             var arcTerm = document.getElementById('archive-term-select');
             var arcPeriod = document.getElementById('archive-period-select');
+            var prevTerm = document.getElementById('preview-term-select');
+            var prevPeriod = document.getElementById('preview-period-select');
 
-            var currentTerm = entryTerm ? entryTerm.value : 'الفصل الدراسي الأول';
-            var currentPeriod = entryPeriod ? entryPeriod.value : 'الفترة الأولى';
+            var currentTerm = (arcTerm && arcTerm.value) ? arcTerm.value : ((prevTerm && prevTerm.value) ? prevTerm.value : 'الفصل الدراسي الأول');
+            var currentPeriod = (arcPeriod && arcPeriod.value) ? arcPeriod.value : ((prevPeriod && prevPeriod.value) ? prevPeriod.value : 'الفترة الأولى');
 
             if (prevTerm) prevTerm.value = currentTerm;
             if (prevPeriod) prevPeriod.value = currentPeriod;
@@ -5751,16 +5754,12 @@
         function onPreviewParamsChange() {
             var prevTerm = document.getElementById('preview-term-select');
             var prevPeriod = document.getElementById('preview-period-select');
-            var entryTerm = document.getElementById('entry-term-select');
-            var entryPeriod = document.getElementById('entry-period-select');
             var arcTerm = document.getElementById('archive-term-select');
             var arcPeriod = document.getElementById('archive-period-select');
 
             var currentTerm = prevTerm ? prevTerm.value : 'الفصل الدراسي الأول';
             var currentPeriod = prevPeriod ? prevPeriod.value : 'الفترة الأولى';
 
-            if (entryTerm) entryTerm.value = currentTerm;
-            if (entryPeriod) entryPeriod.value = currentPeriod;
             if (arcTerm) arcTerm.value = currentTerm;
             if (arcPeriod) arcPeriod.value = currentPeriod;
 
@@ -5769,7 +5768,48 @@
             updateArchiveSuggestedTitle();
         }
 
-        function buildReportHTML(mode) {
+        async function clearCurrentGradeCells() {
+            var sub = appData.subjects.find(function(s) { return s.id === activeEntrySubjectId; });
+            if (!sub || !sub.types || sub.types.length === 0) {
+                showToast('لا توجد مادة أو عناصر تقييم محددة لتفريغ درجاتها!', 'warning');
+                return;
+            }
+            var selectedGrade = document.getElementById('entry-grade-select') ? document.getElementById('entry-grade-select').value : '';
+            var selectedClass = document.getElementById('entry-class-select') ? document.getElementById('entry-class-select').value : '';
+            var students = appData.students.filter(function(s) { return s.grade === selectedGrade && s.className === selectedClass; });
+
+            if (students.length === 0) {
+                showToast('لا يوجد طلاب مسجلون في هذا الفصل لتفريغ درجاتهم!', 'warning');
+                return;
+            }
+
+            var confirmMsg = 'هل أنت متأكد من تفريغ درجات مادة (' + sub.name + ') لطلاب (' + selectedGrade + ' - فصل ' + selectedClass + ')؟\n\nلن يتم حذف بيانات الطلاب أو المادة أو المساس بأي سجلات محفوظة في الأرشيف.';
+            var confirmed = false;
+            if (typeof showConfirmDialog === 'function') {
+                confirmed = await showConfirmDialog(confirmMsg, 'تأكيد تفريغ الخانات', 'fas fa-eraser', 'btn-danger', 'نعم، تفريغ الخانات');
+            } else {
+                confirmed = window.confirm(confirmMsg);
+            }
+
+            if (!confirmed) return;
+
+            students.forEach(function(stu) {
+                sub.types.forEach(function(t) {
+                    for (var slot = 0; slot < t.slots; slot++) {
+                        var k = sub.id + '_' + stu.id + '_' + t.id + '_' + slot;
+                        if (appData.grades[k] !== undefined) {
+                            delete appData.grades[k];
+                        }
+                    }
+                });
+            });
+
+            await saveData();
+            renderGradeEntryTable();
+            showToast('تم تفريغ درجات الخانات الحالية بنجاح!', 'success');
+        }
+
+        function buildReportHTML(mode, customTerm, customPeriod) {
             if (!activeEntrySubjectId && appData.subjects && appData.subjects.length > 0) {
                 activeEntrySubjectId = appData.subjects[0].id;
             }
@@ -5779,7 +5819,7 @@
             var students = appData.students.filter(function(s) { return s.grade === selectedGrade && s.className === selectedClass; });
             var s = appData.settings;
             var isGirls = s.gender === 'girls';
-            var tp = getSelectedTermAndPeriod();
+            var tp = (customTerm && customPeriod) ? { term: customTerm, period: customPeriod } : getSelectedTermAndPeriod();
 
             var fitNameWidth = calculateFitNameWidth(students, 'bold 11px "Tajawal", Tahoma, sans-serif');
 
@@ -6591,7 +6631,7 @@
             var aTerm = document.getElementById('archive-term-select') ? document.getElementById('archive-term-select').value : 'الفصل الدراسي الأول';
             var aPeriod = document.getElementById('archive-period-select') ? document.getElementById('archive-period-select').value : 'الفترة الأولى';
 
-            var snapshot = buildReportHTML(currentPreviewMode || 'detailed');
+            var snapshot = buildReportHTML(currentPreviewMode || 'detailed', aTerm, aPeriod);
             var students = appData.students.filter(function(s) { return s.grade === selectedGrade && s.className === selectedClass; });
             var gradesSubset = {};
             if (sub && sub.types) {
@@ -7330,6 +7370,7 @@
         window.syncTermPeriodSettings = syncTermPeriodSettings;
         window.onPreviewParamsChange = onPreviewParamsChange;
         window.updateArchiveSuggestedTitle = updateArchiveSuggestedTitle;
+        window.clearCurrentGradeCells = clearCurrentGradeCells;
 
         function renderDashboard() {
             document.getElementById('dash-total-students').textContent = appData.students.length;
